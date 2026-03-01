@@ -9,6 +9,7 @@ import {
   LogOut,
   Sparkles,
   Menu,
+  Search,
 } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -30,7 +31,11 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Categorías',   to: '/categories',  icon: <Tag size={17} /> },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenSearch?: () => void
+}
+
+export function Sidebar({ onOpenSearch }: SidebarProps) {
   const [open, setOpen] = useState(false)
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
@@ -113,6 +118,21 @@ export function Sidebar() {
           <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30 px-3 py-2">
             Navegación
           </p>
+
+          {/* Search button */}
+          {onOpenSearch && (
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-white/55 hover:text-white/90 hover:bg-white/8 group mb-1"
+            >
+              <Search size={17} className="flex-shrink-0" />
+              <span className="flex-1 text-left">Buscar</span>
+              <span className="hidden lg:inline-flex items-center gap-0.5 text-[10px] font-semibold text-white/25 bg-white/8 border border-white/10 rounded px-1 py-0.5">
+                ⌃K
+              </span>
+            </button>
+          )}
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}

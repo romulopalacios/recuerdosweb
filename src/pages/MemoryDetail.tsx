@@ -23,6 +23,19 @@ import { PhotoUploader } from '@/components/photos/PhotoUploader'
 import { formatDate } from '@/lib/utils'
 import { getMoodEmoji, MOODS } from '@/lib/moodData'
 import { getIconEmoji } from '@/lib/categoryData'
+import type { CategoryColor } from '@/types'
+
+// Static map — avoids dynamic Tailwind class interpolation that breaks in production
+const categoryGradientMap: Record<CategoryColor, string> = {
+  rose:   'from-rose-400   to-pink-500',
+  pink:   'from-pink-400   to-fuchsia-400',
+  purple: 'from-purple-400 to-violet-500',
+  blue:   'from-blue-400   to-sky-500',
+  green:  'from-green-400  to-emerald-500',
+  amber:  'from-amber-400  to-yellow-500',
+  orange: 'from-orange-400 to-red-400',
+  teal:   'from-teal-400   to-cyan-500',
+}
 
 export default function MemoryDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -117,7 +130,7 @@ export default function MemoryDetailPage() {
         <div
           className={`h-2 w-full bg-gradient-to-r ${
             memory.category?.color
-              ? `from-${memory.category.color}-400 to-${memory.category.color}-600`
+              ? categoryGradientMap[memory.category.color]
               : 'from-rose-400 to-pink-500'
           }`}
         />
@@ -229,7 +242,6 @@ export default function MemoryDetailPage() {
         title="Eliminar recuerdo"
         description={`¿Seguro que quieres eliminar "${memory.title}"? Esta acción no se puede deshacer.`}
         confirmLabel="Sí, eliminar"
-        variant="danger"
         loading={deleteMemory.isPending}
       />
     </motion.div>

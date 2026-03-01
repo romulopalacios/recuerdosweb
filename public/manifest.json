@@ -1,0 +1,36 @@
+{
+  "name": "Nuestros Recuerdos",
+  "short_name": "Recuerdos",
+  "description": "Tu espacio íntimo para guardar momentos especiales",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#e11d48",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💕</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo recuerdo",
+      "url": "/memories",
+      "description": "Ir a la lista de recuerdos"
+    },
+    {
+      "name": "Timeline",
+      "url": "/timeline",
+      "description": "Ver el timeline cronológico"
+    },
+    {
+      "name": "Galería",
+      "url": "/gallery",
+      "description": "Ver todas las fotos"
+    }
+  ]
+}
