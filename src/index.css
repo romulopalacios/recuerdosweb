@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #fda4af;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+  --color-rose-800: #9f1239;
+  --color-rose-900: #881337;
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: #fafafa;
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #e0b4d0; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #d084b8; }
+
+  /* Sidebar-area custom scrollbar (dark) */
+  .sidebar-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+}
+
+@layer utilities {
+  /* ── Glassmorphism ── */
+  .glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+  }
+
+  .glass-dark {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* ── Backgrounds ── */
+  .bg-app {
+    background: #fafafa;
+  }
+
+  .gradient-romantic {
+    background: #fafafa;
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, #c81d5b 0%, #e11d48 40%, #ec4899 100%);
+  }
+
+  .gradient-sidebar {
+    background: linear-gradient(175deg, #1c0a2e 0%, #2e1055 45%, #1a082a 100%);
+  }
+
+  .gradient-card-top { background: linear-gradient(90deg, #e11d48, #f43f5e); }
+
+  /* ── Text ── */
+  .text-gradient {
+    background: linear-gradient(135deg, #c81d5b, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Shadows ── */
+  .shadow-soft {
+    box-shadow: 0 4px 24px rgba(200, 29, 91, 0.18);
+  }
+
+  .shadow-card {
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.04),
+      0 4px 16px rgba(0,0,0,0.06),
+      0 0 0 1px rgba(0,0,0,0.04);
+  }
+
+  .shadow-card-hover {
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.05),
+      0 8px 32px rgba(0,0,0,0.10),
+      0 0 0 1px rgba(0,0,0,0.06);
+  }
+
+  .shadow-sidebar {
+    box-shadow: 4px 0 32px rgba(0,0,0,0.25);
+  }
+
+  /* ── Animations ── */
+  .animate-float {
+    animation: float 3.5s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2.5s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease both;
+  }
+
+  /* ── Misc ── */
+  .ring-brand {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px rgba(225,29,72,0.35);
+  }
+
+  .divider {
+    border-top: 1px solid rgba(225,29,72,0.08);
+  }
+
+  .divider-dark {
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+}
+
+/* ── Keyframes ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-9px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Sidebar nav active pill glow ── */
+.nav-active-glow {
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* ── Page content padding compensation on mobile ── */
+@media (max-width: 1023px) {
+  .page-top-pad { padding-top: 4rem; }
+}
