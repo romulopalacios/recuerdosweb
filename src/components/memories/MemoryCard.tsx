@@ -209,7 +209,7 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
 
 /* ── Auto-rotating photo carousel for the card cover ────────────────────── */
 
-const SLIDE_INTERVAL = 3200 // ms between slides
+const SLIDE_INTERVAL = 2000 // ms between slides
 
 function CardCarousel({ memoryId, coverUrl }: { memoryId: string; coverUrl?: string }) {
   // staleTime: 5 min — avoids re-fetching on every list navigation
@@ -221,6 +221,7 @@ function CardCarousel({ memoryId, coverUrl }: { memoryId: string; coverUrl?: str
     : coverUrl ? [coverUrl] : []
 
   const [activeIdx, setActiveIdx] = useState(0)
+  const [hovered,   setHovered]   = useState(false)
   // Store urls.length in a ref so the interval callback never has a stale closure
   const urlsLenRef = useRef(urls.length)
   urlsLenRef.current = urls.length
@@ -230,19 +231,25 @@ function CardCarousel({ memoryId, coverUrl }: { memoryId: string; coverUrl?: str
     setActiveIdx(0)
   }, [urls.length])
 
-  // Start/restart the auto-advance when the photo count changes
+  // Auto-advance only while the user is hovering
   useEffect(() => {
-    if (urls.length <= 1) return
+    if (!hovered || urls.length <= 1) return
     const id = setInterval(() => {
       setActiveIdx((prev) => (prev + 1) % urlsLenRef.current)
     }, SLIDE_INTERVAL)
     return () => clearInterval(id)
-  }, [urls.length])
+  }, [hovered, urls.length])
 
   if (urls.length === 0) return null
 
   return (
     <>
+      {/* Invisible hover sensor — sits behind images & buttons, captures enter/leave for the whole cover area */}
+      <div
+        className="absolute inset-0"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setActiveIdx(0) }}
+      />
       {/* All images stacked — crossfade via opacity, subtle zoom on active */}
       {urls.map((url, i) => (
         <img

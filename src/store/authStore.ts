@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { queryClient } from '@/lib/queryClient'
 
 interface AuthState {
   session: Session | null
@@ -22,6 +23,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
 
   initialize: async () => {
+    // Guard against double-call (React StrictMode fires effects twice in dev)
+    if (useAuthStore.getState().initialized) return
+
     const { data } = await supabase.auth.getSession()
     set({
       session: data.session,
@@ -62,5 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await supabase.auth.signOut()
     set({ session: null, user: null })
+    // Clear all cached queries so a new user never sees the previous user's data
+    queryClient.clear()
   },
 }))

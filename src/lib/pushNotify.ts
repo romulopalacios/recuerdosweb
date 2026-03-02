@@ -40,10 +40,8 @@ export function notifyOwner(payload: PushPayload): void {
       return
     }
     const result = data as { ok: boolean; sent?: boolean; reason?: string }
-    if (result?.sent) {
-      console.info('[notifyOwner] push sent ✅ to owner', payload.owner_id.slice(0, 8))
-    } else {
-      console.info('[notifyOwner] push skipped — reason:', result?.reason ?? 'unknown', '| owner:', payload.owner_id.slice(0, 8))
+    if (!result?.sent) {
+      console.warn('[notifyOwner] push skipped — reason:', result?.reason ?? 'unknown')
     }
   }).catch((err: unknown) => {
     console.warn('[notifyOwner] invoke failed:', err)

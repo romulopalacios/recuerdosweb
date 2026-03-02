@@ -13,9 +13,107 @@ import { getMoodEmoji } from '@/lib/moodData'
 import { getIconEmoji } from '@/lib/categoryData'
 import { useState } from 'react'
 import { MemoryForm } from '@/components/memories/MemoryForm'
+import { parseISO, differenceInCalendarDays, addYears, format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } }
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } } }
+const item      = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } } }
+
+// ─── Days Counter Card ────────────────────────────────────────────────────────
+
+interface DaysCounterProps {
+  days: number
+  months: number
+  date: string   // ISO date of first memory
+}
+
+function DaysCounter({ days, months, date }: DaysCounterProps) {
+  const firstDate     = parseISO(date)
+  const now           = new Date()
+  const years         = Math.floor(months / 12)
+  const remMonths     = months % 12
+
+  // Progress toward next anniversary
+  const lastAnniv     = addYears(firstDate, years)
+  const nextAnniv     = addYears(firstDate, years + 1)
+  const totalDaysInYear = differenceInCalendarDays(nextAnniv, lastAnniv)
+  const daysSinceAnniv  = differenceInCalendarDays(now, lastAnniv)
+  const toNext          = differenceInCalendarDays(nextAnniv, now)
+  const progress        = Math.min(100, Math.round((daysSinceAnniv / totalDaysInYear) * 100))
+
+  const units = [
+    { value: years,     label: years     === 1 ? 'año'  : 'años'  },
+    { value: remMonths, label: remMonths === 1 ? 'mes'  : 'meses' },
+  ].filter((u) => u.value > 0)
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-white border border-rose-100 shadow-card px-6 py-5">
+      {/* decorative background heart */}
+      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[7rem] leading-none select-none pointer-events-none text-rose-50 font-bold">
+        ♥
+      </span>
+
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-5">
+        {/* Big days number */}
+        <div className="flex items-end gap-3 shrink-0">
+          <motion.span
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1,   opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 18, delay: 0.1 }}
+            className="font-display text-6xl sm:text-7xl font-extrabold text-rose-500 leading-none tabular-nums"
+          >
+            {days.toLocaleString('es')}
+          </motion.span>
+          <span className="text-gray-400 text-lg font-medium mb-2 leading-none">
+            días juntos 💕
+          </span>
+        </div>
+
+        {/* Right side: breakdown + progress */}
+        <div className="flex-1 space-y-3">
+          {/* Year / month breakdown pills */}
+          {units.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {units.map((u) => (
+                <span
+                  key={u.label}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-600 text-sm font-semibold"
+                >
+                  <span className="font-extrabold">{u.value}</span>
+                  <span className="font-normal text-rose-400">{u.label}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* First memory date */}
+          <p className="text-xs text-gray-400">
+            Desde el&nbsp;
+            <span className="font-medium text-gray-600">
+              {format(firstDate, "d 'de' MMMM 'de' yyyy", { locale: es })}
+            </span>
+          </p>
+
+          {/* Progress bar toward next anniversary */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] text-gray-400">
+              <span>{years === 0 ? 'Primer aniversario' : `Aniversario #${years + 1}`}</span>
+              <span>{toNext === 0 ? '🎉 ¡Hoy!' : `${toNext} día${toNext !== 1 ? 's' : ''} para el próximo`}</span>
+            </div>
+            <div className="h-1.5 w-full bg-rose-50 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+                className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -79,6 +177,13 @@ export default function DashboardPage() {
           </Button>
         </div>
       </motion.div>
+
+      {/* ── Days counter ── */}
+      {together && together.days > 0 && (
+        <motion.div variants={item}>
+          <DaysCounter days={together.days} months={together.months} date={together.date} />
+        </motion.div>
+      )}
 
       {/* ── Stat cards ── */}
       <motion.div variants={item} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
