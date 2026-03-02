@@ -46,7 +46,7 @@ export function DropZone({ onFiles, disabled, className }: DropZoneProps) {
           ? 'border-rose-400 bg-rose-50/80 scale-[1.01]'
           : disabled
           ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
-          : 'border-pink-200 bg-pink-50/30 hover:border-rose-300 hover:bg-pink-50/60',
+          : 'border-rose-200 bg-rose-50/30 hover:border-rose-300 hover:bg-rose-50/60',
         className,
       )}
     >
@@ -64,12 +64,12 @@ export function DropZone({ onFiles, disabled, className }: DropZoneProps) {
 
       <div className={cn(
         'w-14 h-14 rounded-2xl flex items-center justify-center transition-all',
-        dragging ? 'bg-rose-200 scale-110' : 'bg-pink-100',
+        dragging ? 'bg-rose-200 scale-110' : 'bg-rose-100',
       )}>
         {dragging ? (
           <Upload size={26} className="text-rose-500 animate-bounce" />
         ) : (
-          <ImagePlus size={26} className="text-pink-400" />
+          <ImagePlus size={26} className="text-rose-400" />
         )}
       </div>
 

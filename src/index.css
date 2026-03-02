@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-rose-50: #fff1f2;
-  --color-rose-100: #ffe4e6;
-  --color-rose-200: #fecdd3;
-  --color-rose-300: #fda4af;
-  --color-rose-400: #fb7185;
-  --color-rose-500: #f43f5e;
-  --color-rose-600: #e11d48;
-  --color-rose-700: #be123c;
-  --color-rose-800: #9f1239;
-  --color-rose-900: #881337;
+  /* Slate Blue & Pearl — confident, calm, trustworthy */
+  --color-rose-50:  #f0f4f9;
+  --color-rose-100: #dde8f3;
+  --color-rose-200: #b9d0e8;
+  --color-rose-300: #8ab3d4;
+  --color-rose-400: #5e8fbe;
+  --color-rose-500: #4a6fa5;
+  --color-rose-600: #3a5a8a;
+  --color-rose-700: #2d4670;
+  --color-rose-800: #1f3254;
+  --color-rose-900: #131f38;
 
   --font-display: "Playfair Display", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -29,8 +30,8 @@
 
   body {
     font-family: var(--font-body);
-    background: #fafafa;
-    color: #111827;
+    background: #f5f6fa;
+    color: #1a1f2e;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
@@ -42,19 +43,19 @@
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #e0b4d0; border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: #d084b8; }
+  ::-webkit-scrollbar-thumb { background: #b9d0e8; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8ab3d4; }
 
   /* Sidebar-area custom scrollbar (dark) */
-  .sidebar-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
-  .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+  .sidebar-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
 }
 
 @layer utilities {
   /* ── Glassmorphism ── */
   .glass {
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.78);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.55);
@@ -69,59 +70,58 @@
 
   /* ── Backgrounds ── */
   .bg-app {
-    background: #fafafa;
+    background: #f5f6fa;
   }
 
   .gradient-romantic {
-    background: #fafafa;
+    background: #f5f6fa;
   }
 
+  /* Flat solid — no gradients */
   .gradient-hero {
-    background: linear-gradient(135deg, #c81d5b 0%, #e11d48 40%, #ec4899 100%);
+    background: #3a5a8a; /* slate blue accent — icons, badges, pills */
+  }
+
+  .bg-hero {
+    background: #131f38; /* deep navy — full-width hero banners */
   }
 
   .gradient-sidebar {
-    background: linear-gradient(175deg, #1c0a2e 0%, #2e1055 45%, #1a082a 100%);
+    background: #111318; /* near-black charcoal sidebar */
   }
 
-  .gradient-card-top { background: linear-gradient(90deg, #e11d48, #f43f5e); }
+  .gradient-card-top { background: #3a5a8a; }
 
-  /* ── Text ── */
+  /* ── Text accents ── */
   .text-gradient {
-    background: linear-gradient(135deg, #c81d5b, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #2d4670;
   }
 
   .text-gradient-purple {
-    background: linear-gradient(135deg, #7c3aed, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #2d4670;
   }
 
   /* ── Shadows ── */
   .shadow-soft {
-    box-shadow: 0 4px 24px rgba(200, 29, 91, 0.18);
+    box-shadow: 0 4px 20px rgba(58, 90, 138, 0.14);
   }
 
   .shadow-card {
     box-shadow:
       0 1px 2px rgba(0,0,0,0.04),
-      0 4px 16px rgba(0,0,0,0.06),
-      0 0 0 1px rgba(0,0,0,0.04);
+      0 4px 16px rgba(0,0,0,0.05),
+      0 0 0 1px rgba(0,0,0,0.03);
   }
 
   .shadow-card-hover {
     box-shadow:
       0 2px 4px rgba(0,0,0,0.05),
-      0 8px 32px rgba(0,0,0,0.10),
-      0 0 0 1px rgba(0,0,0,0.06);
+      0 8px 28px rgba(58, 90, 138, 0.10),
+      0 0 0 1px rgba(58, 90, 138, 0.07);
   }
 
   .shadow-sidebar {
-    box-shadow: 4px 0 32px rgba(0,0,0,0.25);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.22);
   }
 
   /* ── Animations ── */
@@ -145,11 +145,11 @@
   .ring-brand {
     outline: 2px solid transparent;
     outline-offset: 2px;
-    box-shadow: 0 0 0 2px rgba(225,29,72,0.35);
+    box-shadow: 0 0 0 2px rgba(58, 90, 138, 0.28);
   }
 
   .divider {
-    border-top: 1px solid rgba(225,29,72,0.08);
+    border-top: 1px solid rgba(58, 90, 138, 0.07);
   }
 
   .divider-dark {
@@ -178,9 +178,9 @@
   to   { opacity: 1; }
 }
 
-/* ── Sidebar nav active pill glow ── */
+/* ── Sidebar nav active pill ── */
 .nav-active-glow {
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 10px rgba(58,90,138,0.35);
 }
 
 /* ── Page content padding compensation on mobile ── */

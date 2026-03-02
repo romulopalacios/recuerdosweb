@@ -21,7 +21,7 @@ import { useMemory, useDeleteMemory, useToggleFavorite } from '@/hooks/useMemori
 import { useAuthStore } from '@/store/authStore'
 import { PhotoUploader } from '@/components/photos/PhotoUploader'
 import { formatDate } from '@/lib/utils'
-import { getMoodEmoji, MOODS } from '@/lib/moodData'
+import { MOODS } from '@/lib/moodData'
 import { getIconEmoji } from '@/lib/categoryData'
 import type { CategoryColor } from '@/types'
 
@@ -128,10 +128,10 @@ export default function MemoryDetailPage() {
       <Card className="overflow-hidden !p-0">
         {/* Gradient bar */}
         <div
-          className={`h-2 w-full bg-gradient-to-r ${
+          className={`h-2 w-full ${
             memory.category?.color
-              ? categoryGradientMap[memory.category.color]
-              : 'from-rose-400 to-pink-500'
+              ? `bg-gradient-to-r ${categoryGradientMap[memory.category.color]}`
+              : 'bg-rose-600'
           }`}
         />
         <div className="p-6">

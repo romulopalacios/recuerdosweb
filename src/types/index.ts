@@ -96,3 +96,28 @@ export interface UploadProgress {
 
 export type ViewMode = 'grid' | 'list' | 'masonry'
 export type SortOrder = 'date_desc' | 'date_asc' | 'created_desc' | 'alpha'
+
+// ─── Sharing ─────────────────────────────────────────────────────────────────
+
+export interface SharedAccess {
+  id:             string
+  owner_id:       string
+  guest_user_id:  string | null
+  invite_token:   string          // UUID, single-use
+  accepted_at:    string | null
+  expires_at:     string
+  created_at:     string
+}
+
+export interface CreateInviteResult {
+  row:       SharedAccess
+  inviteUrl: string
+}
+
+// ─── Photo (extended) ────────────────────────────────────────────────────────
+// thumb_url is populated by the process-image Edge Function
+declare module '@/types' {
+  interface Photo {
+    thumb_url?: string
+  }
+}

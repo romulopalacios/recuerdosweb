@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, User, Eye, EyeOff, Sparkles, Heart, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
@@ -17,6 +17,8 @@ export default function LoginPage() {
 
   const { signIn, signUp, loading } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect') ?? '/dashboard'
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -30,7 +32,7 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         await signIn(form.email, form.password)
-        navigate('/dashboard')
+        navigate(redirectTo, { replace: true })
       } else {
         await signUp(form.email, form.password, form.name)
         setSuccess('¡Cuenta creada! Revisa tu correo para confirmar tu email, luego inicia sesión.')
@@ -55,7 +57,7 @@ export default function LoginPage() {
         {/* ambient glows */}
         <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-rose-500/10 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-violet-500/10 blur-[80px] pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-pink-500/5 blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-rose-500/5 blur-[120px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col h-full p-12">
           {/* Logo */}
@@ -273,14 +275,6 @@ export default function LoginPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Demo note — pinned to bottom so it doesn't affect form centering */}
-        <div className="absolute bottom-5 left-0 right-0 px-6">
-          <div className="max-w-sm mx-auto p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-700">
-            <strong>Setup:</strong> Configura tu cuenta de Supabase en{' '}
-            <code className="bg-amber-100 px-1 rounded">.env.local</code>. Ver{' '}
-            <code>SETUP.md</code>.
-          </div>
-        </div>
       </div>
     </div>
   )

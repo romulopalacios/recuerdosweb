@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { uploadPhoto, getPhotoUrl, PHOTOS_BUCKET } from '@/lib/supabase'
+import { uploadPhoto, PHOTOS_BUCKET } from '@/lib/supabase'
 import { buildPhotoPath } from '@/lib/utils'
 import type { Photo } from '@/types'
 
@@ -60,7 +60,22 @@ export async function addPhoto({ memoryId, userId, file, onProgress }: UploadPho
     })
     .select()
     .single()
-  if (error) throw error
+
+  if (error) {
+    // Roll back: remove orphaned file from storage so it doesn't accumulate
+    await supabase.storage.from(PHOTOS_BUCKET).remove([path]).catch(() => null)
+    throw error
+  }
+
+  // Auto-set as cover image when this is the first photo added to a memory
+  const { count } = await supabase
+    .from('photos')
+    .select('*', { count: 'exact', head: true })
+    .eq('memory_id', memoryId)
+  if (count === 1) {
+    await setCoverPhoto((data as Photo).id, memoryId, publicUrl).catch(() => null)
+  }
+
   return data as Photo
 }
 
@@ -86,7 +101,7 @@ export async function deletePhoto(id: string, storagePath: string): Promise<void
 }
 
 /** Set a photo as the cover image for its memory. */
-export async function setCoverPhoto(photoId: string, memoryId: string, publicUrl: string): Promise<void> {
+export async function setCoverPhoto(_photoId: string, memoryId: string, publicUrl: string): Promise<void> {
   const { error } = await supabase
     .from('memories')
     .update({ cover_photo_url: publicUrl })

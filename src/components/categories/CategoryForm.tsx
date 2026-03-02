@@ -48,7 +48,8 @@ export function CategoryForm({ open, onClose, editing }: CategoryFormProps) {
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       name:        '',
       description: '',
@@ -121,7 +122,7 @@ export function CategoryForm({ open, onClose, editing }: CategoryFormProps) {
       }
     >
       {/* Preview */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 mb-5">
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 mb-5">
         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${preview.colorClass} flex items-center justify-center text-xl shadow-sm flex-shrink-0`}>
           {preview.emoji}
         </div>

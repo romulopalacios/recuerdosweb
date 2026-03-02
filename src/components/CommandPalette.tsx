@@ -11,6 +11,17 @@ import { getMoodEmoji } from '@/lib/moodData'
 import { getMemories } from '@/services/memoriesService'
 import type { Memory } from '@/types'
 
+// ─── Simple debounce hook ─────────────────────────────────────────────────────
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState<T>(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
+
 // ─── Quick nav links shown when no query ─────────────────────────────────────
 
 const QUICK_LINKS = [
@@ -42,32 +53,23 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [query, setQuery]   = useState('')
   const [cursor, setCursor] = useState(0)
 
-  // Fetch all memories for search (cached 5 min)
-  const { data: allMemories = [] } = useQuery({
-    queryKey: ['memories', 'all', 'palette'],
-    queryFn:  () => getMemories({ limit: 500, sort: 'date_desc' }),
-    staleTime: 1000 * 60 * 5,
-    enabled: open,
+  const debouncedQuery = useDebounce(query.trim(), 300)
+
+  // Query Supabase only when the user has typed something (server-side search)
+  const { data: searchMemories = [], isFetching } = useQuery({
+    queryKey: ['memories', 'palette-search', debouncedQuery],
+    queryFn:  () => getMemories({ search: debouncedQuery, limit: 8, sort: 'date_desc' }),
+    staleTime: 1000 * 60,
+    enabled: Boolean(debouncedQuery),
   })
 
   // Build results list
   const results = useMemo<ResultItem[]>(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) {
+    if (!debouncedQuery) {
       return QUICK_LINKS.map((l) => ({ kind: 'link' as const, ...l }))
     }
-    const matched = allMemories
-      .filter(
-        (m) =>
-          m.title.toLowerCase().includes(q) ||
-          (m.content ?? '').toLowerCase().includes(q) ||
-          (m.location ?? '').toLowerCase().includes(q) ||
-          (m.tags ?? []).some((t) => t.toLowerCase().includes(q)) ||
-          (m.category?.name ?? '').toLowerCase().includes(q),
-      )
-      .slice(0, 8)
-    return matched.map((m) => ({ kind: 'memory' as const, memory: m }))
-  }, [query, allMemories])
+    return searchMemories.map((m) => ({ kind: 'memory' as const, memory: m }))
+  }, [debouncedQuery, searchMemories])
 
   // Reset state on open/close
   useEffect(() => {
@@ -167,7 +169,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 ref={listRef}
                 className="max-h-72 overflow-y-auto py-2"
               >
-                {results.length === 0 ? (
+                {/* Loading state while debounce / fetch in progress */}
+                {isFetching && debouncedQuery ? (
+                  <li className="flex items-center justify-center py-8 gap-2 text-sm text-gray-400">
+                    <div className="w-4 h-4 rounded-full border-2 border-rose-200 border-t-rose-500 animate-spin" />
+                    Buscando…
+                  </li>
+                ) : results.length === 0 && debouncedQuery ? (
                   <li className="flex flex-col items-center py-8 text-gray-400 text-sm gap-2">
                     <Search size={20} className="opacity-40" />
                     Sin resultados para «{query}»

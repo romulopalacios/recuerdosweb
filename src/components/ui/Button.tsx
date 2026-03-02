@@ -14,13 +14,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<Variant, string> = {
   primary:
-    'bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-soft hover:from-rose-700 hover:to-pink-600 hover:shadow-md active:scale-95 active:shadow-none',
+    'bg-rose-600 text-white hover:bg-rose-700 active:scale-95 active:bg-rose-800',
   secondary:
     'bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 hover:border-rose-300 hover:shadow-sm active:scale-95',
   ghost:
     'bg-transparent text-rose-600 hover:bg-rose-50 hover:text-rose-700 active:scale-95',
   danger:
-    'bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 hover:shadow-md active:scale-95',
+    'bg-red-600 text-white hover:bg-red-700 active:scale-95',
 }
 
 const sizeStyles: Record<Size, string> = {
@@ -39,7 +39,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
           variantStyles[variant],
           sizeStyles[size],
           className,

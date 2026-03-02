@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
 import { TagInput } from '@/components/ui/TagInput'
 import { MoodPicker } from '@/components/ui/MoodPicker'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useCreateMemory, useUpdateMemory } from '@/hooks/useMemories'
 import { useCategories } from '@/hooks/useCategories'
 import type { Memory } from '@/types'
@@ -48,6 +49,9 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
   const isPending = createMutation.isPending || updateMutation.isPending
   const { data: categories = [] } = useCategories()
 
+  // Unsaved-changes guard
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -55,9 +59,10 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
     control,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       title:       '',
       content:     '',
@@ -69,6 +74,26 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
       is_favorite: false,
     },
   })
+
+  // Prevent accidental page refresh / tab close when form has unsaved data
+  useEffect(() => {
+    if (!open || !isDirty) return
+    function beforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    return () => window.removeEventListener('beforeunload', beforeUnload)
+  }, [open, isDirty])
+
+  // Intercept the close request: if the form is dirty, ask first
+  function handleClose() {
+    if (isDirty && !isPending) {
+      setConfirmDiscard(true)
+    } else {
+      onClose()
+    }
+  }
 
   // Pre-fill when editing
   useEffect(() => {
@@ -120,9 +145,10 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
   ]
 
   return (
+    <>
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={isEditing ? 'Editar recuerdo' : 'Nuevo recuerdo 💕'}
       description={isEditing ? 'Actualiza los detalles de este recuerdo.' : 'Guarda un momento especial para siempre.'}
       size="lg"
@@ -140,7 +166,7 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
             <Heart size={16} className={isFavorite ? 'fill-rose-500' : ''} />
             {isFavorite ? 'Favorito' : 'Marcar favorito'}
           </button>
-          <Button variant="ghost" onClick={onClose} disabled={isPending}>
+          <Button variant="ghost" onClick={handleClose} disabled={isPending}>
             Cancelar
           </Button>
           <Button type="submit" form="memory-form" loading={isPending}>
@@ -234,5 +260,18 @@ export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
         />
       </form>
     </Modal>
+
+    {/* Discard confirmation — shown when user tries to close a dirty form */}
+    <ConfirmDialog
+      open={confirmDiscard}
+      onClose={() => setConfirmDiscard(false)}
+      onConfirm={() => { setConfirmDiscard(false); onClose() }}
+      title="¿Descartar cambios?"
+      description="Tienes cambios sin guardar. Si cierras ahora se perderán."
+      confirmLabel="Sí, descartar"
+      cancelLabel="Seguir editando"
+      danger
+    />
+    </>
   )
 }

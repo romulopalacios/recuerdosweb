@@ -23,7 +23,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
               'w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all duration-150 cursor-pointer',
               value === ic.value
                 ? 'bg-rose-100 ring-2 ring-rose-400 scale-110'
-                : 'bg-gray-50 hover:bg-pink-50 hover:scale-110',
+                : 'bg-gray-50 hover:bg-rose-50 hover:scale-110',
             )}
           >
             {ic.emoji}

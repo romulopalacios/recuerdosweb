@@ -68,7 +68,7 @@ export default function TimelineMemoryCard({ memory }: TimelineMemoryCardProps) 
               />
             </div>
           ) : (
-            <div className="flex-shrink-0 w-[72px] h-[72px] rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 flex items-center justify-center">
+            <div className="flex-shrink-0 w-[72px] h-[72px] rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center">
               <Image size={20} className="text-rose-200" />
             </div>
           )}

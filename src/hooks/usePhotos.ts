@@ -47,6 +47,9 @@ export function useAddPhoto() {
       qc.invalidateQueries({ queryKey: photoKeys.byMemory(vars.memoryId) })
       qc.invalidateQueries({ queryKey: photoKeys.gallery() })
       qc.invalidateQueries({ queryKey: ['stats'] })
+      // Invalidate memory so cover_photo_url updates in cards and detail page
+      qc.invalidateQueries({ queryKey: ['memories', vars.memoryId] })
+      qc.invalidateQueries({ queryKey: ['memories', 'list'] })
     },
     onError: (err: Error) => toast.error(`Error al subir: ${err.message}`),
   })

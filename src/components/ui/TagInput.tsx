@@ -40,7 +40,7 @@ export function TagInput({ label, tags, onChange, placeholder = 'Escribe y presi
       {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
       <div
         className={cn(
-          'flex flex-wrap gap-2 min-h-[42px] w-full rounded-xl border border-pink-200 bg-white/80 px-3 py-2',
+          'flex flex-wrap gap-2 min-h-[42px] w-full rounded-xl border border-rose-200 bg-white/80 px-3 py-2',
           'focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-200 transition-all duration-200 cursor-text',
         )}
         onClick={() => inputRef.current?.focus()}

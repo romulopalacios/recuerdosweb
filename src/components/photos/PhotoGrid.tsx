@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Trash2, Star, MoreHorizontal, Maximize2, Pencil } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Trash2, Star, Maximize2, Pencil } from 'lucide-react'
 import { Lightbox } from './Lightbox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
 import { useDeletePhoto, useSetCoverPhoto, useUpdatePhoto } from '@/hooks/usePhotos'
 import type { Photo } from '@/types'
 
@@ -23,8 +23,6 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
   const [deleteTarget, setDeleteTarget] = useState<Photo | null>(null)
   const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
   const [captionText, setCaptionText] = useState('')
-  const [menuOpen, setMenuOpen] = useState<string | null>(null)
-
   const deleteMutation  = useDeletePhoto(memoryId)
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
@@ -43,14 +41,13 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
             <motion.div
               key={photo.id}
               variants={item}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-pink-50 cursor-pointer"
+              className="group relative aspect-square rounded-xl overflow-hidden bg-rose-50 cursor-pointer"
             >
-              <img
+              <ProgressiveImage
                 src={photo.public_url}
                 alt={photo.caption ?? ''}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onClick={() => setLightboxIndex(idx)}
-                loading="lazy"
               />
 
               {/* Cover badge */}
@@ -140,7 +137,7 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
         title="Eliminar foto"
         description="¿Seguro que quieres eliminar esta foto? No se puede recuperar."
         confirmLabel="Sí, eliminar"
-        variant="danger"
+        danger
         loading={deleteMutation.isPending}
       />
 
@@ -157,7 +154,7 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
               onChange={(e) => setCaptionText(e.target.value)}
               placeholder="Añade una descripción…"
               maxLength={120}
-              className="w-full px-3 py-2 border border-pink-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+              className="w-full px-3 py-2 border border-rose-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
             />
             <div className="flex gap-2 mt-4">
               <button
@@ -173,7 +170,7 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
                   await captionMutation.mutateAsync({ id: captionTarget.id, input: { caption: captionText.trim() || undefined } })
                   setCaptionTarget(null)
                 }}
-                className="flex-1 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-medium cursor-pointer hover:opacity-90"
+                className="flex-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium cursor-pointer hover:bg-rose-700 transition-colors"
               >
                 Guardar
               </button>

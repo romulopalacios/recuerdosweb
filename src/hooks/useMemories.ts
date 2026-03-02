@@ -45,6 +45,7 @@ export function useCreateMemory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: memoryKeys.all() })
       qc.invalidateQueries({ queryKey: ['stats'] })
+      qc.invalidateQueries({ queryKey: ['timeline'] })
       toast.success('¡Recuerdo guardado! 💕')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -59,6 +60,7 @@ export function useUpdateMemory() {
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: memoryKeys.all()      })
       qc.invalidateQueries({ queryKey: memoryKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: ['timeline'] })
       toast.success('Recuerdo actualizado ✅')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -72,6 +74,7 @@ export function useDeleteMemory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: memoryKeys.all() })
       qc.invalidateQueries({ queryKey: ['stats'] })
+      qc.invalidateQueries({ queryKey: ['timeline'] })
       toast.success('Recuerdo eliminado')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -83,9 +86,37 @@ export function useToggleFavorite() {
   return useMutation({
     mutationFn: ({ id, current }: { id: string; current: boolean }) =>
       toggleFavorite(id, current),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: memoryKeys.all() })
+
+    // ── Optimistic update ────────────────────────────────────────────────────
+    // Flip the heart icon instantly; roll back if the server rejects.
+    onMutate: async ({ id, current }) => {
+      // Cancel any in-flight refetches so they don't overwrite our optimistic data
+      await qc.cancelQueries({ queryKey: memoryKeys.all() })
+
+      // Snapshot all cached list/detail queries that contain this memory
+      const snapshots = qc.getQueriesData<import('@/types').Memory[]>({ queryKey: memoryKeys.all() })
+
+      snapshots.forEach(([key, data]) => {
+        if (!Array.isArray(data)) return
+        qc.setQueryData<import('@/types').Memory[]>(
+          key,
+          data.map((m) => (m.id === id ? { ...m, is_favorite: !current } : m)),
+        )
+      })
+
+      return { snapshots }
     },
-    onError: (err: Error) => toast.error(err.message),
+
+    onError: (_err, _vars, ctx) => {
+      // Roll back every cache we touched
+      ctx?.snapshots.forEach(([key, data]) => qc.setQueryData(key, data))
+      toast.error('No se pudo actualizar el favorito')
+    },
+
+    onSettled: () => {
+      // Always sync with the server after optimistic update settles
+      qc.invalidateQueries({ queryKey: memoryKeys.all() })
+      qc.invalidateQueries({ queryKey: ['timeline'] })
+    },
   })
 }

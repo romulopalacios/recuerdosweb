@@ -112,7 +112,7 @@ export default function TimelineMonth({ group, index }: TimelineMonthProps) {
             {/* Continuous vertical line for the month */}
             <div
               aria-hidden
-              className="absolute left-0 top-2 bottom-4 w-px bg-gradient-to-b from-rose-300 via-rose-100 to-transparent"
+              className="absolute left-0 top-2 bottom-4 w-px bg-rose-200 opacity-60"
             />
 
             {group.memories.map((memory) => (

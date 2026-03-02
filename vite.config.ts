@@ -13,5 +13,12 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    // Force a single React instance — prevents "Cannot read properties of null
+    // (reading 'useState')" when packages like @tanstack/react-virtual bundle
+    // their own copy of React instead of using the project's version.
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', '@tanstack/react-virtual'],
   },
 })

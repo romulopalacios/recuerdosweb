@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 
 interface MemoryCardProps {
   memory: Memory
-  onEdit: (m: Memory) => void
+  onEdit?: (m: Memory) => void
   layout?: 'grid' | 'list'
 }
 
@@ -79,13 +79,15 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
               >
                 <Heart size={14} className={memory.is_favorite ? 'fill-rose-500' : ''} />
               </button>
-              <MemoryMenu
-                memoryId={memory.id}
-                onEdit={() => onEdit(memory)}
-                onDelete={() => setConfirmOpen(true)}
-                open={menuOpen}
-                setOpen={setMenuOpen}
-              />
+              {onEdit && (
+                <MemoryMenu
+                  memoryId={memory.id}
+                  onEdit={() => onEdit(memory)}
+                  onDelete={() => setConfirmOpen(true)}
+                  open={menuOpen}
+                  setOpen={setMenuOpen}
+                />
+              )}
             </div>
           </div>
         </motion.div>
@@ -152,13 +154,15 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
               >
                 {memory.title}
               </Link>
-              <MemoryMenu
-                memoryId={memory.id}
-                onEdit={() => onEdit(memory)}
-                onDelete={() => setConfirmOpen(true)}
-                open={menuOpen}
-                setOpen={setMenuOpen}
-              />
+              {onEdit && (
+                <MemoryMenu
+                  memoryId={memory.id}
+                  onEdit={() => onEdit(memory)}
+                  onDelete={() => setConfirmOpen(true)}
+                  open={menuOpen}
+                  setOpen={setMenuOpen}
+                />
+              )}
             </div>
 
             <p className="text-xs text-gray-400 font-medium">{formatDate(memory.memory_date)}</p>

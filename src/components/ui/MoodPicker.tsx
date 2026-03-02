@@ -20,7 +20,7 @@ export function MoodPicker({ value, onChange, label }: MoodPickerProps) {
             onClick={() => onChange(value === m.value ? undefined : m.value)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-150 cursor-pointer',
-              value === m.value ? m.color + ' scale-105 shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-pink-50',
+              value === m.value ? m.color + ' scale-105 shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-rose-50',
             )}
           >
             <span>{m.emoji}</span>

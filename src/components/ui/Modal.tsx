@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -81,7 +81,7 @@ export function Modal({
             >
               {/* Header */}
               {(title || description) && (
-                <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-pink-100 flex-shrink-0">
+                <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-rose-100 flex-shrink-0">
                   <div>
                     {title && (
                       <h2 className="font-display text-xl font-bold text-gray-900">{title}</h2>
@@ -92,7 +92,7 @@ export function Modal({
                   </div>
                   <button
                     onClick={onClose}
-                    className="p-1.5 rounded-xl hover:bg-pink-50 text-gray-400 hover:text-rose-500 transition-colors flex-shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-xl hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors flex-shrink-0 cursor-pointer"
                     aria-label="Cerrar"
                   >
                     <X size={18} />
@@ -105,7 +105,7 @@ export function Modal({
 
               {/* Footer */}
               {footer && (
-                <div className="flex-shrink-0 px-6 py-4 border-t border-pink-100 flex items-center justify-end gap-3">
+                <div className="flex-shrink-0 px-6 py-4 border-t border-rose-100 flex items-center justify-end gap-3">
                   {footer}
                 </div>
               )}

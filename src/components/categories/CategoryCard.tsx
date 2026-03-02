@@ -7,7 +7,6 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getIconEmoji } from '@/lib/categoryData'
 import { useDeleteCategory } from '@/hooks/useCategories'
 import type { Category, CategoryColor } from '@/types'
-import { cn } from '@/lib/utils'
 
 const gradientMap: Record<CategoryColor, string> = {
   rose:   'from-rose-500 to-pink-500',
@@ -78,7 +77,7 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
                     <button
                       type="button"
                       onClick={() => { setMenuOpen(false); onEdit(category) }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-rose-600 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
                     >
                       <Pencil size={14} /> Editar
                     </button>

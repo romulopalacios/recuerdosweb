@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Calendar, Search, X } from 'lucide-react'
+import { Calendar, Search, X, Download } from 'lucide-react'
+import { usePhotoAlbumExport } from '@/hooks/usePhotoAlbumExport'
 import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Lightbox } from '@/components/photos/Lightbox'
@@ -10,6 +11,22 @@ import { formatMonthYear, groupBy } from '@/lib/utils'
 import type { Photo } from '@/types'
 
 type GalleryPhoto = Photo & { memory_title?: string; memory_date?: string }
+
+// ─── PDF export button ────────────────────────────────────────────────────────
+function ExportButton({ photos }: { photos: GalleryPhoto[] }) {
+  const { exportAlbum, isExporting, progress } = usePhotoAlbumExport()
+  return (
+    <button
+      type="button"
+      disabled={isExporting || photos.length === 0}
+      onClick={() => exportAlbum(photos, { title: 'Nuestros Recuerdos' })}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+    >
+      <Download size={14} />
+      {isExporting ? `${progress}%` : 'Exportar PDF'}
+    </button>
+  )
+}
 
 export default function GalleryPage() {
   const { data: photos = [], isLoading } = useAllPhotos()
@@ -37,11 +54,16 @@ export default function GalleryPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl lg:text-3xl font-bold text-gray-900">Galería de Fotos</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {photos.length > 0 ? `${photos.length} foto${photos.length !== 1 ? 's' : ''} en total` : 'Todas tus fotos en un solo lugar'}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl lg:text-3xl font-bold text-gray-900">Galería de Fotos</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {photos.length > 0 ? `${photos.length} foto${photos.length !== 1 ? 's' : ''} en total` : 'Todas tus fotos en un solo lugar'}
+          </p>
+        </div>
+        {photos.length > 0 && (
+          <ExportButton photos={filtered} />
+        )}
       </div>
 
       {photos.length > 0 && (

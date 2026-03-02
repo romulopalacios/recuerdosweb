@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, XCircle, Loader2, X, ImagePlus } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2, X } from 'lucide-react'
 import { DropZone } from './DropZone'
-import { PhotoGrid } from './PhotoGrid'
+import { VirtualPhotoGrid } from './VirtualPhotoGrid'
 import { usePhotosByMemory } from '@/hooks/usePhotos'
 import { addPhoto } from '@/services/photosService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -23,8 +23,6 @@ export function PhotoUploader({ memoryId, userId, coverUrl }: PhotoUploaderProps
   const [queue, setQueue] = useState<UploadProgress[]>([])
   const [uploading, setUploading] = useState(false)
   const qc = useQueryClient()
-
-  const isActive = queue.some((q) => q.status === 'pending' || q.status === 'uploading')
 
   const updateQueue = useCallback(
     (file: File, patch: Partial<UploadProgress>) => {
@@ -94,11 +92,11 @@ export function PhotoUploader({ memoryId, userId, coverUrl }: PhotoUploaderProps
       {isLoading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-pink-50 animate-pulse" />
+            <div key={i} className="aspect-square rounded-xl bg-rose-50 animate-pulse" />
           ))}
         </div>
       ) : photos.length > 0 ? (
-        <PhotoGrid photos={photos} memoryId={memoryId} coverUrl={coverUrl} />
+        <VirtualPhotoGrid photos={photos} memoryId={memoryId} coverUrl={coverUrl} />
       ) : null}
 
       {/* Drop zone */}
@@ -160,7 +158,7 @@ function QueueItem({ item, onRemove }: { item: UploadProgress; onRemove: () => v
         'flex items-center gap-3 p-3 rounded-xl border text-sm',
         status === 'done'     ? 'bg-green-50  border-green-100' :
         status === 'error'    ? 'bg-red-50    border-red-100'   :
-        status === 'uploading'? 'bg-pink-50   border-pink-100'  :
+        status === 'uploading'? 'bg-rose-50   border-rose-100'  :
                                 'bg-gray-50   border-gray-100',
       )}
     >
@@ -173,9 +171,9 @@ function QueueItem({ item, onRemove }: { item: UploadProgress; onRemove: () => v
         <p className="text-gray-400 text-xs">{formatBytes(file.size)}</p>
 
         {status === 'uploading' && (
-          <div className="mt-1.5 h-1.5 rounded-full bg-pink-100 overflow-hidden">
+          <div className="mt-1.5 h-1.5 rounded-full bg-rose-100 overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-rose-500 to-pink-400 rounded-full"
+              className="h-full bg-rose-500 rounded-full"
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.2 }}
             />

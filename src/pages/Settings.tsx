@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Shield, Mail, Calendar, LogOut, Save, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { User, Shield, Mail, Calendar, LogOut, Save, Eye, EyeOff, Sparkles, Link2, Bell } from 'lucide-react'
+import { SharingPanel, NotificationsPanel } from '@/components/sharing/SharingNotificationsPanel'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -33,7 +34,7 @@ type PasswordForm = z.infer<typeof passwordSchema>
 
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
-type Tab = 'profile' | 'security'
+type Tab = 'profile' | 'security' | 'sharing' | 'notifications'
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,9 @@ function ProfileSection() {
         data: { full_name: data.full_name },
       })
       if (error) throw error
+      // Sync the Zustand store so the sidebar name updates immediately
+      const { data: { user: freshUser } } = await supabase.auth.getUser()
+      if (freshUser) useAuthStore.setState({ user: freshUser })
       toast.success('Perfil actualizado 💕')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al guardar')
@@ -238,8 +242,10 @@ function DangerZone() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'profile',  label: 'Perfil',    icon: <User size={15} /> },
-  { id: 'security', label: 'Seguridad', icon: <Shield size={15} /> },
+  { id: 'profile',       label: 'Perfil',          icon: <User size={15} /> },
+  { id: 'security',     label: 'Seguridad',        icon: <Shield size={15} /> },
+  { id: 'sharing',      label: 'Compartir',        icon: <Link2 size={15} /> },
+  { id: 'notifications', label: 'Notificaciones',  icon: <Bell size={15} /> },
 ]
 
 export default function SettingsPage() {
@@ -288,8 +294,10 @@ export default function SettingsPage() {
 
       {/* Tab panels */}
       <Card>
-        {tab === 'profile'  && <ProfileSection />}
-        {tab === 'security' && <SecuritySection />}
+        {tab === 'profile'       && <ProfileSection />}
+        {tab === 'security'      && <SecuritySection />}
+        {tab === 'sharing'       && <SharingPanel />}
+        {tab === 'notifications' && <NotificationsPanel />}
       </Card>
 
       <DangerZone />

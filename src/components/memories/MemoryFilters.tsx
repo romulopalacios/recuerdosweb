@@ -1,7 +1,6 @@
-import { Search, Filter, X, LayoutGrid, List, SlidersHorizontal } from 'lucide-react'
+import { Search, X, LayoutGrid, List, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Input } from '@/components/ui/Input'
-import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
 import { useCategories } from '@/hooks/useCategories'
 import { MOODS } from '@/lib/moodData'
@@ -62,7 +61,7 @@ export function MemoryFilters({ filters, onChange, onReset, viewMode, onViewMode
             'flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer',
             showAdvanced || activeCount > 0
               ? 'bg-rose-50 border-rose-200 text-rose-600'
-              : 'bg-white border-pink-200 text-gray-600 hover:border-rose-200 hover:text-rose-500',
+              : 'bg-white border-rose-200 text-gray-600 hover:border-rose-200 hover:text-rose-500',
           )}
         >
           <SlidersHorizontal size={15} />
@@ -75,18 +74,18 @@ export function MemoryFilters({ filters, onChange, onReset, viewMode, onViewMode
         </button>
 
         {/* View mode */}
-        <div className="flex rounded-xl border border-pink-200 overflow-hidden">
+        <div className="flex rounded-xl border border-rose-200 overflow-hidden">
           <button
             type="button"
             onClick={() => onViewMode('grid')}
-            className={cn('p-2.5 transition-colors cursor-pointer', viewMode === 'grid' ? 'bg-rose-500 text-white' : 'bg-white text-gray-400 hover:bg-pink-50')}
+            className={cn('p-2.5 transition-colors cursor-pointer', viewMode === 'grid' ? 'bg-rose-500 text-white' : 'bg-white text-gray-400 hover:bg-rose-50')}
           >
             <LayoutGrid size={15} />
           </button>
           <button
             type="button"
             onClick={() => onViewMode('list')}
-            className={cn('p-2.5 transition-colors cursor-pointer', viewMode === 'list' ? 'bg-rose-500 text-white' : 'bg-white text-gray-400 hover:bg-pink-50')}
+            className={cn('p-2.5 transition-colors cursor-pointer', viewMode === 'list' ? 'bg-rose-500 text-white' : 'bg-white text-gray-400 hover:bg-rose-50')}
           >
             <List size={15} />
           </button>

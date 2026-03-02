@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { useStats, useMonthsTogether } from '@/hooks/useStats'
 import { useMemories } from '@/hooks/useMemories'
+import { useGuestMode } from '@/hooks/useGuestMode'
 import { formatDate } from '@/lib/utils'
 import { getMoodEmoji } from '@/lib/moodData'
 import { getIconEmoji } from '@/lib/categoryData'
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const { data: recentMemories = [] } = useMemories({ limit: 5, sort: 'date_desc' })
   const { data: favorites = [] } = useMemories({ is_favorite: true, limit: 4, sort: 'date_desc' })
   const [formOpen, setFormOpen] = useState(false)
+  const { isGuest } = useGuestMode()
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'amor'
 
@@ -39,7 +41,7 @@ export default function DashboardPage() {
       {/* ── Hero banner ── */}
       <motion.div
         variants={item}
-        className="relative overflow-hidden rounded-3xl gradient-hero p-8 lg:p-10 shadow-soft"
+        className="relative overflow-hidden rounded-3xl bg-hero p-8 lg:p-10 shadow-soft"
       >
         {/* ambient blobs */}
         <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
@@ -71,7 +73,7 @@ export default function DashboardPage() {
             size="lg"
             leftIcon={<Plus size={18} />}
             onClick={() => setFormOpen(true)}
-            className="shrink-0 bg-white text-rose-600 hover:bg-white/90 hover:text-rose-700 border border-white/30 shadow-sm"
+            className={`shrink-0 bg-white text-rose-600 hover:bg-white/90 hover:text-rose-700 border border-white/30 shadow-sm${ isGuest ? ' hidden' : ''}`}
           >
             Nuevo recuerdo
           </Button>
