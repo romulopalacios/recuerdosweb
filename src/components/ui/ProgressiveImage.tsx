@@ -3,6 +3,9 @@ import { cn } from '@/lib/utils'
 
 interface ProgressiveImageProps {
   src: string
+  /** Optional low-res thumbnail URL shown immediately as blurred placeholder
+   *  while the full-res `src` downloads. Falls back to a shimmer if absent. */
+  thumbSrc?: string
   alt: string
   className?: string
   containerClassName?: string
@@ -13,45 +16,58 @@ interface ProgressiveImageProps {
 
 /**
  * Drop-in replacement for <img> that:
- * 1. Shows a shimmer skeleton while the real image downloads.
- * 2. Fades the image in smoothly once loaded (no pop-in).
+ * 1. Shows a thumb (blurred) or shimmer skeleton while the real image downloads.
+ * 2. Fades the full-res image in smoothly once loaded (no pop-in).
  * 3. Always uses lazy + async decoding for off-screen images.
  *
  * Usage:
- *   <ProgressiveImage src={photo.public_url} alt="foto" className="w-full h-full object-cover" />
+ *   <ProgressiveImage
+ *     src={photo.public_url}
+ *     thumbSrc={photo.thumb_url}
+ *     alt="foto"
+ *   />
  */
 export function ProgressiveImage({
   src,
+  thumbSrc,
   alt,
   className,
   containerClassName,
   onClick,
   placeholderColor = 'bg-rose-50',
 }: ProgressiveImageProps) {
-  const [loaded, setLoaded] = useState(false)
-  const [errored, setErrored] = useState(false)
+  const [loaded,   setLoaded]   = useState(false)
+  const [errored,  setErrored]  = useState(false)
 
   return (
     <div className={cn('relative overflow-hidden w-full h-full', containerClassName)}>
-      {/* Shimmer skeleton — hidden once image is ready */}
+      {/* ── Placeholder layer ─── */}
       {!loaded && !errored && (
-        <div
-          className={cn(
-            'absolute inset-0 animate-pulse',
-            placeholderColor,
-          )}
-          aria-hidden
-        />
+        thumbSrc ? (
+          /* Blurred thumbnail shown immediately as a low-fi preview */
+          <img
+            src={thumbSrc}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover scale-105 blur-sm"
+          />
+        ) : (
+          /* Shimmer skeleton fallback */
+          <div
+            className={cn('absolute inset-0 animate-pulse', placeholderColor)}
+            aria-hidden
+          />
+        )
       )}
 
-      {/* Error state */}
+      {/* ── Error state ─── */}
       {errored && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
           <span className="text-2xl opacity-30">💔</span>
         </div>
       )}
 
-      {/* The actual image */}
+      {/* ── Full-res image ─── */}
       {!errored && (
         <img
           src={src}
@@ -71,3 +87,4 @@ export function ProgressiveImage({
     </div>
   )
 }
+

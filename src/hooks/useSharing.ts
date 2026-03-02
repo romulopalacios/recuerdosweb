@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { notifyOwner } from '@/lib/pushNotify'
 import {
   createInviteLink,
   getMyShares,
   acceptInvite,
   revokeShare,
+  type CreateInviteOptions,
 } from '@/services/sharingService'
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
@@ -28,14 +30,15 @@ export function useMyShares() {
 export function useCreateInvite() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: createInviteLink,
+    mutationFn: (opts: CreateInviteOptions) => createInviteLink(opts),
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: sharingKeys.list() })
-      // Copy to clipboard automatically
+      const permLabel = result.row.permission === 'write' ? 'lectura y escritura' : 'solo lectura'
+      const forWho    = result.label ? ` para ${result.label}` : ''
       navigator.clipboard
         .writeText(result.inviteUrl)
-        .then(() => toast.success('¡Enlace de invitación copiado! Compártelo con tu pareja 💕'))
-        .catch(() => toast.success(`Invitación creada: ${result.inviteUrl}`))
+        .then(() => toast.success(`¡Enlace copiado${forWho}! Acceso de ${permLabel} 💕`))
+        .catch(() => toast.success(`Invitación creada (${permLabel}): ${result.inviteUrl}`))
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -46,8 +49,17 @@ export function useCreateInvite() {
 export function useAcceptInvite() {
   return useMutation({
     mutationFn: (token: string) => acceptInvite(token),
-    onSuccess: () => toast.success('¡Acceso compartido aceptado! Ahora puedes ver los recuerdos 💕'),
-    onError:   (err: Error) => toast.error(err.message),
+    onSuccess: (share) => {
+      // Notify the owner that someone accepted their invite
+      notifyOwner({
+        owner_id: share.owner_id,
+        title:    '¡Invitación aceptada! 💕',
+        body:     'Alguien ha aceptado tu invitación y ahora puede ver tus recuerdos.',
+        url:      '/settings',
+      })
+      toast.success('¡Acceso compartido aceptado! Ahora puedes ver los recuerdos 💕')
+    },
+    onError: (err: Error) => toast.error(err.message),
   })
 }
 

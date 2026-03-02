@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import type { Memory } from '@/types'
 
@@ -27,12 +28,13 @@ import type { Memory } from '@/types'
 export type NotificationPermission = 'default' | 'granted' | 'denied' | 'unsupported'
 
 export interface UsePushNotificationsReturn {
-  permission:     NotificationPermission
-  isSubscribed:   boolean
-  isRegistering:  boolean
-  subscribe:      () => Promise<void>
-  unsubscribe:    () => Promise<void>
+  permission:         NotificationPermission
+  isSubscribed:       boolean
+  isRegistering:      boolean
+  subscribe:          () => Promise<void>
+  unsubscribe:        () => Promise<void>
   checkAnniversaries: () => Promise<void>
+  refreshPermission:  () => void
 }
 
 // ─── VAPID public key from env ────────────────────────────────────────────────
@@ -45,7 +47,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData  = window.atob(base64)
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
+  const output   = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i)
+  return output
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -69,6 +73,15 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
     setPermission(Notification.permission as NotificationPermission)
 
+    // Listen for permission changes automatically (supported in most modern browsers)
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'notifications' }).then((status) => {
+        status.addEventListener('change', () => {
+          setPermission(Notification.permission as NotificationPermission)
+        })
+      }).catch(() => null)
+    }
+
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then(async (reg) => {
@@ -79,40 +92,95 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       .catch(console.error)
   }, [])
 
+  // Manual refresh — re-reads the real browser permission state
+  const refreshPermission = useCallback(() => {
+    if ('Notification' in window) {
+      setPermission(Notification.permission as NotificationPermission)
+    }
+  }, [])
+
   // ── Request permission + subscribe to Push API ────────────────────────────
   const subscribe = useCallback(async () => {
-    if (!swReg || !VAPID_PUBLIC_KEY) {
-      console.warn('[usePushNotifications] SW not ready or VAPID key missing')
+    if (!VAPID_PUBLIC_KEY) {
+      toast.error('Falta la clave VAPID. Contacta al desarrollador.')
       return
     }
+
     setIsRegistering(true)
     try {
+      // Make sure we have a SW registration (wait up to 5 s)
+      let reg = swReg
+      if (!reg) {
+        if (!('serviceWorker' in navigator)) throw new Error('Tu navegador no soporta Service Workers')
+        reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Service Worker tardó demasiado. Recarga la página.')), 5000)
+          ),
+        ])
+        setSwReg(reg)
+      }
+
+      // Ask for permission — browser shows a small popup under the address bar
+      toast('Busca el permiso que aparece en la barra del navegador ☝️', { duration: 6000 })
       const result = await Notification.requestPermission()
       setPermission(result as NotificationPermission)
-      if (result !== 'granted') return
 
-      const subscription = await swReg.pushManager.subscribe({
+      if (result === 'denied') {
+        throw new Error('Permiso denegado. Activa las notificaciones en los ajustes del navegador.')
+      }
+      if (result !== 'granted') {
+        // User dismissed without choosing — not an error, just cancel
+        return
+      }
+
+      // Wait for SW to be active before subscribing to push
+      if (reg.installing || reg.waiting) {
+        await new Promise<void>((resolve) => {
+          const sw = reg!.installing ?? reg!.waiting!
+          sw.addEventListener('statechange', function handler() {
+            if (sw.state === 'activated') { sw.removeEventListener('statechange', handler); resolve() }
+          })
+        })
+      }
+
+      const subscription = await reg.pushManager.subscribe({
         userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       })
+
+      // Safely extract keys — getKey() can return null in some browsers
+      const p256dhBuffer = subscription.getKey('p256dh')
+      const authBuffer   = subscription.getKey('auth')
+      if (!p256dhBuffer || !authBuffer) {
+        throw new Error('El navegador no devolvió las claves de suscripción push')
+      }
+
+      // Encode keys as base64
+      const p256dh = btoa(String.fromCharCode(...Array.from(new Uint8Array(p256dhBuffer))))
+      const auth   = btoa(String.fromCharCode(...Array.from(new Uint8Array(authBuffer))))
 
       // Persist subscription to Supabase so your backend can send pushes
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase
-          .from('push_subscriptions')
-          .upsert({
-            user_id:      user.id,
-            endpoint:     subscription.endpoint,
-            p256dh:       btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!))),
-            auth:         btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!))),
-            updated_at:   new Date().toISOString(),
-          }, { onConflict: 'user_id' })
-      }
+      if (!user) throw new Error('Debes estar autenticado para activar notificaciones')
+
+      const { error: upsertError } = await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id:    user.id,
+          endpoint:   subscription.endpoint,
+          p256dh,
+          auth,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+
+      if (upsertError) throw new Error(`Error al guardar suscripción: ${upsertError.message}`)
 
       setIsSubscribed(true)
-    } catch (err) {
+      toast.success('¡Notificaciones activadas! 💕')
+    } catch (err: unknown) {
       console.error('[usePushNotifications] subscribe error', err)
+      toast.error(err instanceof Error ? err.message : 'No se pudo activar las notificaciones')
     } finally {
       setIsRegistering(false)
     }
@@ -184,5 +252,5 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     }
   }, [swReg, checkAnniversaries])
 
-  return { permission, isSubscribed, isRegistering, subscribe, unsubscribe, checkAnniversaries }
+  return { permission, isSubscribed, isRegistering, subscribe, unsubscribe, checkAnniversaries, refreshPermission }
 }

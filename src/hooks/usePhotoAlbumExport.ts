@@ -18,10 +18,21 @@
  */
 
 import { useState, useCallback } from 'react'
-import jsPDF from 'jspdf'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Photo } from '@/types'
+
+// jsPDF is loaded lazily — only when the user clicks "Exportar PDF".
+// This keeps it out of the Gallery page initial bundle (~300 kB saved).
+type JsPDFCtor = typeof import('jspdf').default
+let _jsPDF: JsPDFCtor | null = null
+async function getJsPDF(): Promise<JsPDFCtor> {
+  if (!_jsPDF) {
+    const mod = await import('jspdf')
+    _jsPDF = mod.default
+  }
+  return _jsPDF
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,7 +130,8 @@ export function usePhotoAlbumExport(): UsePhotoAlbumExportReturn {
       }
 
       // ── 2. Create PDF ───────────────────────────────────────────────────
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const JsPDF = await getJsPDF()
+      const pdf = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
 
       // ── Helper: draw a page header band ─────────────────────────────────
       function drawHeader(label: string) {

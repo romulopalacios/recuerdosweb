@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, MapPin, MoreHorizontal, Pencil, Trash2, Tag, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getIconEmoji } from '@/lib/categoryData'
 import { getMoodEmoji } from '@/lib/moodData'
 import { useDeleteMemory, useToggleFavorite } from '@/hooks/useMemories'
+import { usePhotosByMemory } from '@/hooks/usePhotos'
 import { formatDate } from '@/lib/utils'
 import type { Memory } from '@/types'
 import { cn } from '@/lib/utils'
@@ -109,15 +110,10 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
     <>
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} layout>
         <div className="group flex flex-col overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card transition-all duration-250 hover:shadow-card-hover hover:-translate-y-1">
-          {/* Cover image / placeholder */}
+          {/* Cover image — auto-rotating carousel */}
           <div className="relative h-44 bg-gray-100 overflow-hidden flex-shrink-0">
-            {memory.cover_photo_url ? (
-              <img
-                src={memory.cover_photo_url}
-                alt={memory.title}
-                className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-400"
-              />
-            ) : (
+            <CardCarousel memoryId={memory.id} coverUrl={memory.cover_photo_url} />
+            {!memory.cover_photo_url && (
               <div className="w-full h-full flex items-center justify-center">
                 <span className="text-6xl opacity-25 select-none">{catEmoji ?? '💕'}</span>
               </div>
@@ -207,6 +203,74 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
         description="Este recuerdo se eliminará permanentemente junto con sus fotos."
         confirmLabel="Sí, eliminar"
       />
+    </>
+  )
+}
+
+/* ── Auto-rotating photo carousel for the card cover ────────────────────── */
+
+const SLIDE_INTERVAL = 3200 // ms between slides
+
+function CardCarousel({ memoryId, coverUrl }: { memoryId: string; coverUrl?: string }) {
+  // staleTime: 5 min — avoids re-fetching on every list navigation
+  const { data: photos = [] } = usePhotosByMemory(memoryId)
+
+  // Build stable URL list. While photos are loading, show the cover immediately.
+  const urls: string[] = photos.length > 0
+    ? photos.map((p) => p.thumb_url ?? p.public_url)
+    : coverUrl ? [coverUrl] : []
+
+  const [activeIdx, setActiveIdx] = useState(0)
+  // Store urls.length in a ref so the interval callback never has a stale closure
+  const urlsLenRef = useRef(urls.length)
+  urlsLenRef.current = urls.length
+
+  // Reset index when photo count changes (e.g. first load, new upload)
+  useEffect(() => {
+    setActiveIdx(0)
+  }, [urls.length])
+
+  // Start/restart the auto-advance when the photo count changes
+  useEffect(() => {
+    if (urls.length <= 1) return
+    const id = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % urlsLenRef.current)
+    }, SLIDE_INTERVAL)
+    return () => clearInterval(id)
+  }, [urls.length])
+
+  if (urls.length === 0) return null
+
+  return (
+    <>
+      {/* All images stacked — crossfade via opacity, subtle zoom on active */}
+      {urls.map((url, i) => (
+        <img
+          key={url}
+          src={url}
+          alt=""
+          draggable={false}
+          style={{
+            transition: 'opacity 700ms ease, transform 700ms ease',
+            opacity: i === activeIdx ? 1 : 0,
+            transform: i === activeIdx ? 'scale(1.04)' : 'scale(1)',
+          }}
+          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+        />
+      ))}
+
+      {/* Pill indicators — only when 2+ photos */}
+      {urls.length > 1 && (
+        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
+          {urls.map((_, i) => (
+            <span
+              key={i}
+              style={{ transition: 'all 400ms ease', width: i === activeIdx ? '20px' : '5px', opacity: i === activeIdx ? 1 : 0.45 }}
+              className="h-[3px] rounded-full bg-white/85 inline-block"
+            />
+          ))}
+        </div>
+      )}
     </>
   )
 }

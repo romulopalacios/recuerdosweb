@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { uploadPhoto, PHOTOS_BUCKET } from '@/lib/supabase'
+import { uploadPhoto, PHOTOS_BUCKET, getThumbUrl } from '@/lib/supabase'
 import { buildPhotoPath } from '@/lib/utils'
 import type { Photo } from '@/types'
 
@@ -36,6 +36,7 @@ export async function getAllPhotos(): Promise<(Photo & { memory_title?: string; 
     .select('*, memory:memories(title, memory_date)')
     .order('created_at', { ascending: false })
   if (error) throw error
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((p: any) => ({
     ...p,
     memory_title: p.memory?.title,
@@ -56,6 +57,8 @@ export async function addPhoto({ memoryId, userId, file, onProgress }: UploadPho
       user_id:      userId,
       storage_path: path,
       public_url:   publicUrl,
+      // Thumb URL via Supabase Storage Image Transformations CDN (resize-on-demand)
+      thumb_url:    getThumbUrl(path, 200, 200, 'cover'),
       size_bytes:   file.size,
     })
     .select()
@@ -100,6 +103,20 @@ export async function deletePhoto(id: string, storagePath: string): Promise<void
   if (error) throw error
 }
 
+/**
+ * Batch-update order_index for a set of photos.
+ * Used by drag-&-drop reordering in PhotoCarousel.
+ */
+export async function reorderPhotos(
+  updates: { id: string; order_index: number }[],
+): Promise<void> {
+  await Promise.all(
+    updates.map(({ id, order_index }) =>
+      supabase.from('photos').update({ order_index }).eq('id', id),
+    ),
+  )
+}
+
 /** Set a photo as the cover image for its memory. */
 export async function setCoverPhoto(_photoId: string, memoryId: string, publicUrl: string): Promise<void> {
   const { error } = await supabase
@@ -109,10 +126,3 @@ export async function setCoverPhoto(_photoId: string, memoryId: string, publicUr
   if (error) throw error
 }
 
-/** Bulk reorder photos by swapping order_index values. */
-export async function reorderPhotos(photos: { id: string; order_index: number }[]): Promise<void> {
-  const updates = photos.map(({ id, order_index }) =>
-    supabase.from('photos').update({ order_index }).eq('id', id),
-  )
-  await Promise.all(updates)
-}

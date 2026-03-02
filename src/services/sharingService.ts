@@ -18,11 +18,21 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import type { SharedAccess, CreateInviteResult } from '@/types'
+import type { SharedAccess, CreateInviteResult, SharePermission } from '@/types'
 
 // ─── Create invite link ───────────────────────────────────────────────────────
 
-export async function createInviteLink(): Promise<CreateInviteResult> {
+export interface CreateInviteOptions {
+  permission:  SharePermission
+  guestName?:  string   // optional display name for the invite list
+  guestEmail?: string   // if provided, only this email can accept
+}
+
+export async function createInviteLink({
+  permission  = 'read',
+  guestName,
+  guestEmail,
+}: CreateInviteOptions = { permission: 'read' }): Promise<CreateInviteResult> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
@@ -32,8 +42,11 @@ export async function createInviteLink(): Promise<CreateInviteResult> {
   const { data, error } = await supabase
     .from('shared_access')
     .insert({
-      owner_id:   user.id,
-      expires_at: expiresAt,
+      owner_id:    user.id,
+      permission,
+      guest_name:  guestName  || null,
+      guest_email: guestEmail ? guestEmail.toLowerCase().trim() : null,
+      expires_at:  expiresAt,
     })
     .select()
     .single()
@@ -42,8 +55,9 @@ export async function createInviteLink(): Promise<CreateInviteResult> {
 
   const row = data as SharedAccess
   const inviteUrl = `${window.location.origin}/invite/${row.invite_token}`
+  const label = row.guest_name ?? row.guest_email ?? null
 
-  return { row, inviteUrl }
+  return { row, inviteUrl, label }
 }
 
 // ─── List active shares ───────────────────────────────────────────────────────
@@ -92,6 +106,13 @@ export async function acceptInvite(token: string): Promise<SharedAccess> {
   // Cannot accept your own invite
   if (share.owner_id === user.id) {
     throw new Error('No puedes aceptar tu propia invitación.')
+  }
+
+  // Email restriction: if the owner set a specific email, only that address can accept
+  if (share.guest_email && user.email?.toLowerCase().trim() !== share.guest_email) {
+    throw new Error(
+      `Este enlace fue creado para ${share.guest_email}. Inicia sesión con esa cuenta para aceptarlo.`
+    )
   }
 
   // Token expired

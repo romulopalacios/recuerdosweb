@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
+import { notifyOwner } from '@/lib/pushNotify'
 import {
   getMemories,
   getMemoryById,
@@ -38,11 +40,27 @@ export function useMemory(id: string) {
 
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
-export function useCreateMemory() {
+/**
+ * @param asUserId  Pass owner's id when a write-permission guest is creating
+ *                  memories so they land in the owner's collection.
+ */
+export function useCreateMemory(asUserId?: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: CreateMemoryInput) => createMemory(input),
-    onSuccess: () => {
+    mutationFn: (input: CreateMemoryInput) => createMemory(input, asUserId),
+    onSuccess: async () => {
+      // If asUserId is set and differs from the signed-in user → guest mode
+      if (asUserId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && asUserId !== user.id) {
+          notifyOwner({
+            owner_id: asUserId,
+            title:    '¡Nuevo recuerdo creado! 💕',
+            body:     'Tu pareja ha añadido un nuevo recuerdo.',
+            url:      '/memories',
+          })
+        }
+      }
       qc.invalidateQueries({ queryKey: memoryKeys.all() })
       qc.invalidateQueries({ queryKey: ['stats'] })
       qc.invalidateQueries({ queryKey: ['timeline'] })

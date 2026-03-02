@@ -6,14 +6,18 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { CategoryCard } from '@/components/categories/CategoryCard'
 import { CategoryForm } from '@/components/categories/CategoryForm'
 import { useCategories } from '@/hooks/useCategories'
+import { useGuestMode } from '@/hooks/useGuestMode'
 import type { Category } from '@/types'
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
 
 export default function CategoriesPage() {
   const { data: categories = [], isLoading, error } = useCategories()
+  const { isGuest, canWrite } = useGuestMode()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Category | null>(null)
+
+  const canEdit = !isGuest || canWrite
 
   function openCreate() { setEditing(null); setFormOpen(true) }
   function openEdit(cat: Category) { setEditing(cat); setFormOpen(true) }
@@ -28,7 +32,7 @@ export default function CategoriesPage() {
             {categories.length > 0 ? `${categories.length} categorías` : 'Organiza tus recuerdos por tipo'}
           </p>
         </div>
-        <Button leftIcon={<Plus size={16} />} onClick={openCreate}>Nueva categoría</Button>
+        {canEdit && <Button leftIcon={<Plus size={16} />} onClick={openCreate}>Nueva categoría</Button>}
       </div>
 
       {isLoading && (
@@ -50,7 +54,7 @@ export default function CategoriesPage() {
           emoji="🏷️"
           title="Aún no hay categorías"
           description="Crea categorías para organizar tus recuerdos: Viajes, Cenas, Fechas especiales, Aventuras…"
-          action={{ label: 'Crear primera categoría', onClick: openCreate, icon: <Plus size={16} /> }}
+          action={canEdit ? { label: 'Crear primera categoría', onClick: openCreate, icon: <Plus size={16} /> } : undefined}
         />
       )}
 
@@ -58,15 +62,17 @@ export default function CategoriesPage() {
         <motion.div variants={container} initial="hidden" animate="show"
           className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {categories.map((cat) => (
-            <CategoryCard key={cat.id} category={cat} onEdit={openEdit} />
+            <CategoryCard key={cat.id} category={cat} onEdit={canEdit ? openEdit : undefined} />
           ))}
-          <button
-            type="button"
-            onClick={openCreate}
-            className="flex items-center justify-center rounded-2xl border-2 border-dashed border-rose-200 hover:border-rose-400 hover:bg-rose-50/50 cursor-pointer transition-all group min-h-[80px] text-gray-400 hover:text-rose-500"
-          >
-            <div className="flex items-center gap-2"><Plus size={18} /><span className="text-sm font-medium">Nueva categoría</span></div>
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="flex items-center justify-center rounded-2xl border-2 border-dashed border-rose-200 hover:border-rose-400 hover:bg-rose-50/50 cursor-pointer transition-all group min-h-[80px] text-gray-400 hover:text-rose-500"
+            >
+              <div className="flex items-center gap-2"><Plus size={18} /><span className="text-sm font-medium">Nueva categoría</span></div>
+            </button>
+          )}
         </motion.div>
       )}
 

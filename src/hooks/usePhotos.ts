@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
+import { notifyOwner } from '@/lib/pushNotify'
 import {
   getPhotosByMemory,
   getAllPhotos,
@@ -26,6 +28,7 @@ export function usePhotosByMemory(memoryId: string) {
     queryKey: photoKeys.byMemory(memoryId),
     queryFn:  () => getPhotosByMemory(memoryId),
     enabled:  Boolean(memoryId),
+    staleTime: 1000 * 60 * 2, // 2 min — reduces parallel re-fetches on list page
   })
 }
 
@@ -43,7 +46,18 @@ export function useAddPhoto() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: UploadPhotoInput) => addPhoto(input),
-    onSuccess: (_data, vars) => {
+    onSuccess: async (photo, vars) => {
+      // If the photo's user_id differs from the currently signed-in user,
+      // we're in guest mode — notify the owner.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && photo.user_id !== user.id) {
+        notifyOwner({
+          owner_id: photo.user_id,
+          title:    '¡Nueva foto añadida! 📸',
+          body:     'Tu pareja ha añadido una foto a tus recuerdos.',
+          url:      `/memories/${vars.memoryId}`,
+        })
+      }
       qc.invalidateQueries({ queryKey: photoKeys.byMemory(vars.memoryId) })
       qc.invalidateQueries({ queryKey: photoKeys.gallery() })
       qc.invalidateQueries({ queryKey: ['stats'] })

@@ -15,12 +15,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
+import type { SharePermission } from '@/types'
 
-interface GuestModeInfo {
-  isGuest:   boolean
-  ownerId:   string | null
-  ownerName: string | null
-  isLoading: boolean
+export interface GuestModeInfo {
+  isGuest:     boolean
+  ownerId:     string | null
+  ownerName:   string | null
+  permission:  SharePermission | null   // null when not a guest
+  canWrite:    boolean                  // shorthand: isGuest && permission === 'write'
+  isLoading:   boolean
 }
 
 export function useGuestMode(): GuestModeInfo {
@@ -34,7 +37,7 @@ export function useGuestMode(): GuestModeInfo {
       // Check if current user is a guest in any active share
       const { data: shares } = await supabase
         .from('shared_access')
-        .select('owner_id')
+        .select('owner_id, permission')
         .eq('guest_user_id', user!.id)
         .not('accepted_at', 'is', null)
         .gt('expires_at', new Date().toISOString())
@@ -42,14 +45,23 @@ export function useGuestMode(): GuestModeInfo {
 
       if (!shares || shares.length === 0) return null
 
-      return { ownerId: shares[0].owner_id as string, ownerName: null }
+      return {
+        ownerId:    shares[0].owner_id  as string,
+        ownerName:  null,
+        permission: (shares[0].permission ?? 'read') as SharePermission,
+      }
     },
   })
 
+  const permission = data?.permission ?? null
+  const isGuest    = !!data
+
   return {
-    isGuest:   !!data,
+    isGuest,
     ownerId:   data?.ownerId   ?? null,
     ownerName: data?.ownerName ?? null,
+    permission,
+    canWrite:  isGuest && permission === 'write',
     isLoading,
   }
 }

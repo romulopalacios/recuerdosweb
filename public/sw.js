@@ -98,8 +98,8 @@ self.addEventListener('push', (event) => {
     title = 'Nuestros Recuerdos 💕',
     body  = '¡Tienes un recuerdo especial hoy!',
     url   = '/',
-    icon  = '/icons/icon-192.png',
-    badge = '/icons/badge-96.png',
+    icon  = '/icons/icon-192.svg',
+    badge = '/icons/badge-96.svg',
   } = data
 
   const options = {

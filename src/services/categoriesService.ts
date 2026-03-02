@@ -24,6 +24,7 @@ export async function getCategories(): Promise<Category[]> {
   if (error) throw new Error(error.message)
 
   // Map Supabase count aggregate to _count
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: any) => ({
     ...row,
     _count: { memories: row.memories?.[0]?.count ?? 0 },

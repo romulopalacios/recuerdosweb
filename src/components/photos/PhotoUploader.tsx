@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, XCircle, Loader2, X } from 'lucide-react'
 import { DropZone } from './DropZone'
-import { VirtualPhotoGrid } from './VirtualPhotoGrid'
+import { PhotoCarousel } from './PhotoCarousel'
 import { usePhotosByMemory } from '@/hooks/usePhotos'
 import { addPhoto } from '@/services/photosService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -16,9 +16,11 @@ interface PhotoUploaderProps {
   memoryId: string
   userId: string
   coverUrl?: string
+  /** When true, photos are shown but uploading is disabled (for read-only guests). */
+  readonly?: boolean
 }
 
-export function PhotoUploader({ memoryId, userId, coverUrl }: PhotoUploaderProps) {
+export function PhotoUploader({ memoryId, userId, coverUrl, readonly }: PhotoUploaderProps) {
   const { data: photos = [], isLoading } = usePhotosByMemory(memoryId)
   const [queue, setQueue] = useState<UploadProgress[]>([])
   const [uploading, setUploading] = useState(false)
@@ -96,19 +98,26 @@ export function PhotoUploader({ memoryId, userId, coverUrl }: PhotoUploaderProps
           ))}
         </div>
       ) : photos.length > 0 ? (
-        <VirtualPhotoGrid photos={photos} memoryId={memoryId} coverUrl={coverUrl} />
+        <PhotoCarousel photos={photos} memoryId={memoryId} coverUrl={coverUrl} readonly={readonly} />
+      ) : readonly ? (
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400 gap-2">
+          <span className="text-4xl">📷</span>
+          <p className="text-sm">Este recuerdo aún no tiene fotos</p>
+        </div>
       ) : null}
 
-      {/* Drop zone */}
-      <DropZone
-        onFiles={enqueue}
-        disabled={uploading}
-        className={photos.length > 0 ? 'py-5' : undefined}
-      />
+      {/* Drop zone — hidden for read-only guests */}
+      {!readonly && (
+        <DropZone
+          onFiles={enqueue}
+          disabled={uploading}
+          className={photos.length > 0 ? 'py-5' : undefined}
+        />
+      )}
 
-      {/* Upload queue */}
+      {/* Upload queue — hidden in readonly mode */}
       <AnimatePresence>
-        {queue.length > 0 && (
+        {!readonly && queue.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

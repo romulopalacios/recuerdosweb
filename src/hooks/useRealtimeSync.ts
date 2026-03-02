@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
+import { useGuestMode } from './useGuestMode'
 import { memoryKeys } from './useMemories'
 import { photoKeys } from './usePhotos'
 
@@ -19,6 +20,7 @@ import { photoKeys } from './usePhotos'
 export function useRealtimeSync() {
   const qc   = useQueryClient()
   const user = useAuthStore((s) => s.user)
+  const { ownerId } = useGuestMode()
 
   useEffect(() => {
     if (!user) return
@@ -79,10 +81,55 @@ export function useRealtimeSync() {
       )
       .subscribe()
 
+    // ── Guest channel: subscribe to owner's changes so guest sees live updates ─
+    // Without this, a read/write-guest would never receive realtime events when
+    // the owner creates or edits memories / photos, because the owner's records
+    // have user_id = owner_id, not guest_id.
+    let guestMemoriesChannel: ReturnType<typeof supabase.channel> | null = null
+    let guestPhotosChannel:   ReturnType<typeof supabase.channel> | null = null
+
+    if (ownerId && ownerId !== user.id) {
+      guestMemoriesChannel = supabase
+        .channel('rt-guest-memories')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'memories', filter: `user_id=eq.${ownerId}` },
+          (payload) => {
+            qc.invalidateQueries({ queryKey: memoryKeys.all() })
+            qc.invalidateQueries({ queryKey: ['stats'] })
+            qc.invalidateQueries({ queryKey: ['timeline'] })
+            const row = (payload.new ?? payload.old) as { id?: string } | null
+            if (row?.id) qc.invalidateQueries({ queryKey: memoryKeys.detail(row.id) })
+          },
+        )
+        .subscribe()
+
+      guestPhotosChannel = supabase
+        .channel('rt-guest-photos')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'photos', filter: `user_id=eq.${ownerId}` },
+          (payload) => {
+            qc.invalidateQueries({ queryKey: photoKeys.all() })
+            qc.invalidateQueries({ queryKey: photoKeys.gallery() })
+            qc.invalidateQueries({ queryKey: ['stats'] })
+            const row = (payload.new ?? payload.old) as { memory_id?: string } | null
+            if (row?.memory_id) {
+              qc.invalidateQueries({ queryKey: photoKeys.byMemory(row.memory_id) })
+              qc.invalidateQueries({ queryKey: memoryKeys.detail(row.memory_id) })
+              qc.invalidateQueries({ queryKey: memoryKeys.all() })
+            }
+          },
+        )
+        .subscribe()
+    }
+
     // Cleanup: unsubscribe when user signs out or component unmounts
     return () => {
       supabase.removeChannel(memoriesChannel)
       supabase.removeChannel(photosChannel)
+      if (guestMemoriesChannel) supabase.removeChannel(guestMemoriesChannel)
+      if (guestPhotosChannel)   supabase.removeChannel(guestPhotosChannel)
     }
-  }, [user, qc])
+  }, [user, ownerId, qc])
 }

@@ -33,4 +33,5 @@ export function MoodPicker({ value, onChange, label }: MoodPickerProps) {
 }
 
 // Re-exported for convenience — source of truth is @/lib/moodData
+// eslint-disable-next-line react-refresh/only-export-components
 export { getMoodEmoji } from '@/lib/moodData'

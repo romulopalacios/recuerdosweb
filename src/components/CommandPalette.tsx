@@ -256,6 +256,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
  * Call this once at the app root. Listens for Ctrl+K / Cmd+K globally.
  * Returns [open, setOpen] to pass into <CommandPalette />.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCommandPalette() {
   const [open, setOpen] = useState(false)
 

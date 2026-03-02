@@ -37,14 +37,16 @@ type FormValues = z.infer<typeof schema>
 interface MemoryFormProps {
   open: boolean
   onClose: () => void
-  editing?: Memory | null
+  editing?:  Memory | null
+  /** Write-permission guests pass the owner's id so new records belong to the owner */
+  ownerId?:  string
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function MemoryForm({ open, onClose, editing }: MemoryFormProps) {
+export function MemoryForm({ open, onClose, editing, ownerId }: MemoryFormProps) {
   const isEditing = Boolean(editing)
-  const createMutation = useCreateMemory()
+  const createMutation = useCreateMemory(ownerId)
   const updateMutation = useUpdateMemory()
   const isPending = createMutation.isPending || updateMutation.isPending
   const { data: categories = [] } = useCategories()

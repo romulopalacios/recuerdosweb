@@ -21,7 +21,7 @@ const gradientMap: Record<CategoryColor, string> = {
 
 interface CategoryCardProps {
   category: Category
-  onEdit: (cat: Category) => void
+  onEdit?: (cat: Category) => void
 }
 
 export function CategoryCard({ category, onEdit }: CategoryCardProps) {
@@ -60,7 +60,8 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
               </div>
             </div>
 
-            {/* Actions menu */}
+            {/* Actions menu — hidden for read-only guests */}
+            {onEdit && (
             <div className="relative flex-shrink-0 ml-2">
               <button
                 type="button"
@@ -92,6 +93,7 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
                 </>
               )}
             </div>
+            )}
           </div>
         </Card>
       </motion.div>

@@ -4,11 +4,20 @@ import { CommandPalette, useCommandPalette } from '@/components/CommandPalette'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useRealtimeSync } from '@/hooks/useRealtimeSync'
 import { useGuestMode } from '@/hooks/useGuestMode'
-import { Eye } from 'lucide-react'
+import { Eye, Pencil } from 'lucide-react'
 
 function GuestBanner() {
-  const { isGuest } = useGuestMode()
+  const { isGuest, canWrite } = useGuestMode()
   if (!isGuest) return null
+
+  if (canWrite) {
+    return (
+      <div className="w-full bg-blue-600 text-white text-center text-sm py-2 px-4 flex items-center justify-center gap-2 flex-shrink-0">
+        <Pencil size={13} />
+        <span>Estás en <strong>modo colaborador</strong> — puedes ver, crear y editar recuerdos 💕</span>
+      </div>
+    )
+  }
   return (
     <div className="w-full bg-violet-600 text-white text-center text-sm py-2 px-4 flex items-center justify-center gap-2 flex-shrink-0">
       <Eye size={14} />

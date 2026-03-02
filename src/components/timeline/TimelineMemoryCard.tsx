@@ -9,7 +9,7 @@ import { CATEGORY_COLORS, getIconEmoji } from '@/lib/categoryData'
 import type { Memory } from '@/types'
 
 // ─── Framer-motion variant (consumed by TimelineMonth stagger parent) ─────────
-
+// eslint-disable-next-line react-refresh/only-export-components
 export const cardVariants = {
   hidden: { opacity: 0, x: -16 },
   show:   { opacity: 1, x: 0, transition: { duration: 0.35, ease: 'easeOut' as const } },

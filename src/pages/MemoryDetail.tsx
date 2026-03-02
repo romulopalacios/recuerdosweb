@@ -19,6 +19,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { MemoryForm } from '@/components/memories/MemoryForm'
 import { useMemory, useDeleteMemory, useToggleFavorite } from '@/hooks/useMemories'
 import { useAuthStore } from '@/store/authStore'
+import { useGuestMode } from '@/hooks/useGuestMode'
 import { PhotoUploader } from '@/components/photos/PhotoUploader'
 import { formatDate } from '@/lib/utils'
 import { MOODS } from '@/lib/moodData'
@@ -41,12 +42,17 @@ export default function MemoryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { isGuest, canWrite, ownerId } = useGuestMode()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const { data: memory, isLoading, error } = useMemory(id!)
   const deleteMemory = useDeleteMemory()
   const toggleFavorite = useToggleFavorite()
+
+  // When a write-permission guest uploads, photos must be stored under
+  // the owner's user_id so the owner's RLS SELECT policy returns them.
+  const uploadUserId = (canWrite && ownerId) ? ownerId : (user?.id ?? '')
 
   async function handleDelete() {
     if (!id) return
@@ -105,22 +111,26 @@ export default function MemoryDetailPage() {
           >
             {memory.is_favorite ? 'Favorito' : 'Favorito'}
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<Pencil size={13} />}
-            onClick={() => setEditOpen(true)}
-          >
-            Editar
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            leftIcon={<Trash2 size={13} />}
-            onClick={() => setDeleteOpen(true)}
-          >
-            Eliminar
-          </Button>
+          {(!isGuest || canWrite) && (
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Pencil size={13} />}
+              onClick={() => setEditOpen(true)}
+            >
+              Editar
+            </Button>
+          )}
+          {(!isGuest || canWrite) && (
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash2 size={13} />}
+              onClick={() => setDeleteOpen(true)}
+            >
+              Eliminar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -217,8 +227,9 @@ export default function MemoryDetailPage() {
         {user && (
           <PhotoUploader
             memoryId={memory.id}
-            userId={user.id}
+            userId={uploadUserId}
             coverUrl={memory.cover_photo_url}
+            readonly={isGuest && !canWrite}
           />
         )}
       </Card>

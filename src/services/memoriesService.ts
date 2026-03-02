@@ -85,19 +85,27 @@ export async function getMemoryById(id: string): Promise<Memory> {
   if (error) throw new Error(error.message)
   // Sort photos by order_index
   if (data.photos) {
-    data.photos = data.photos.sort((a: any, b: any) => a.order_index - b.order_index)
+    data.photos = data.photos.sort(
+      (a: { order_index: number }, b: { order_index: number }) => a.order_index - b.order_index
+    )
   }
   return data as Memory
 }
 
-/** Create a new memory */
-export async function createMemory(input: CreateMemoryInput): Promise<Memory> {
+/** Create a new memory.
+ * @param asUserId  Optional user_id override. Write-permission guests pass
+ *                  the owner's id so records land in the owner's collection.
+ */
+export async function createMemory(
+  input: CreateMemoryInput,
+  asUserId?: string,
+): Promise<Memory> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
   const payload = {
     ...input,
-    user_id: user.id,
+    user_id: asUserId ?? user.id,
     is_favorite: input.is_favorite ?? false,
     tags: input.tags ?? [],
     category_id: input.category_id || null,

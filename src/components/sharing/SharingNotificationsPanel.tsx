@@ -12,14 +12,14 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Link2, Copy, Trash2, Bell, BellOff, BellRing, RefreshCw,
-  Users, Calendar,
+  Users, Calendar, Eye, Pencil, UserRound, Mail,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Button } from '@/components/ui/Button'
 import { useMyShares, useCreateInvite, useRevokeShare } from '@/hooks/useSharing'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import type { SharedAccess } from '@/types'
+import type { SharedAccess, SharePermission } from '@/types'
 
 // ─── Sharing Panel ────────────────────────────────────────────────────────────
 
@@ -27,7 +27,10 @@ export function SharingPanel() {
   const { data: shares = [], isLoading } = useMyShares()
   const createMut  = useCreateInvite()
   const revokeMut  = useRevokeShare()
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedId, setCopiedId]             = useState<string | null>(null)
+  const [newPermission, setNewPermission]   = useState<SharePermission>('read')
+  const [newName, setNewName]               = useState('')
+  const [newEmail, setNewEmail]             = useState('')
 
   function copyLink(share: SharedAccess) {
     const url = `${window.location.origin}/invite/${share.invite_token}`
@@ -37,7 +40,7 @@ export function SharingPanel() {
     })
   }
 
-  function badgeFor(share: SharedAccess) {
+  function statusBadge(share: SharedAccess) {
     if (share.accepted_at) {
       return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs">Activo</span>
     }
@@ -47,22 +50,112 @@ export function SharingPanel() {
     return <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs">Pendiente</span>
   }
 
+  function permissionBadge(share: SharedAccess) {
+    if (share.permission === 'write') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+          <Pencil size={9} /> Leer y escribir
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-xs font-medium">
+        <Eye size={9} /> Solo lectura
+      </span>
+    )
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-800 text-sm">Acceso compartido</h3>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Invita a tu pareja para que pueda ver tus recuerdos en modo lectura.
-          </p>
+      <div>
+        <h3 className="font-semibold text-gray-800 text-sm">Acceso compartido</h3>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Crea un enlace de invitación para que tu pareja pueda acceder a los recuerdos.
+        </p>
+      </div>
+
+      {/* ── Create invite form ─────────────────────────────────────────── */}
+      <div className="space-y-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
+        {/* Name + Email inputs */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+              <UserRound size={10} /> Nombre (opcional)
+            </label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Ej: Mi amor"
+              className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent placeholder-gray-300"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+              <Mail size={10} /> Correo (opcional)
+            </label>
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent placeholder-gray-300"
+            />
+          </div>
         </div>
+
+        {newEmail && (
+          <p className="text-xs text-amber-600 flex items-center gap-1">
+            <Mail size={10} />
+            Solo quien inicie sesión con <strong>{newEmail.trim().toLowerCase()}</strong> podrá aceptar este enlace.
+          </p>
+        )}
+
+        {/* Permission selector */}
+        <div>
+          <p className="text-xs font-medium text-gray-600 mb-1.5">Tipo de acceso</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setNewPermission('read')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                newPermission === 'read'
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-violet-400'
+              }`}
+            >
+              <Eye size={11} /> Solo lectura
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewPermission('write')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                newPermission === 'write'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
+              }`}
+            >
+              <Pencil size={11} /> Leer y escribir
+            </button>
+          </div>
+        </div>
+
         <Button
           size="sm"
           leftIcon={<Link2 size={13} />}
           loading={createMut.isPending}
-          onClick={() => createMut.mutate()}
+          onClick={() => {
+            createMut.mutate({
+              permission: newPermission,
+              guestName:  newName.trim()  || undefined,
+              guestEmail: newEmail.trim() || undefined,
+            }, {
+              onSuccess: () => { setNewName(''); setNewEmail('') },
+            })
+          }}
+          className="w-full"
         >
-          Crear invitación
+          Crear enlace de invitación
         </Button>
       </div>
 
@@ -87,11 +180,18 @@ export function SharingPanel() {
           className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50"
         >
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {badgeFor(share)}
-              {share.accepted_at && (
-                <span className="text-xs text-gray-500 truncate">Aceptado</span>
-              )}
+            {/* Name / email label */}
+            {(share.guest_name || share.guest_email) && (
+              <p className="text-xs font-semibold text-gray-700 truncate flex items-center gap-1 mb-1">
+                {share.guest_name
+                  ? <><UserRound size={10} className="text-gray-400" /> {share.guest_name}</>
+                  : <><Mail size={10} className="text-gray-400" /> {share.guest_email}</>
+                }
+              </p>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {statusBadge(share)}
+              {permissionBadge(share)}
             </div>
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
               <Calendar size={9} />
@@ -136,6 +236,7 @@ export function NotificationsPanel() {
     subscribe,
     unsubscribe,
     checkAnniversaries,
+    refreshPermission,
   } = usePushNotifications()
 
   return (
@@ -143,7 +244,7 @@ export function NotificationsPanel() {
       <div>
         <h3 className="font-semibold text-gray-800 text-sm">Notificaciones push</h3>
         <p className="text-xs text-gray-400 mt-0.5">
-          Recibe alertas de aniversarios — el día exacto en que ocurrió cada recuerdo.
+          Recibe una alerta el día exacto del aniversario de cada recuerdo.
         </p>
       </div>
 
@@ -154,15 +255,28 @@ export function NotificationsPanel() {
       )}
 
       {permission === 'denied' && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
-          Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador.
+        <div className="p-4 rounded-xl bg-red-50 border border-red-100 space-y-3">
+          <p className="text-sm font-medium text-red-700">Notificaciones bloqueadas para este sitio</p>
+          <ol className="text-xs text-red-600 space-y-1 list-decimal list-inside">
+            <li>Haz clic en el <strong>candado 🔒</strong> junto a la barra de direcciones</li>
+            <li>Busca <strong>Notificaciones</strong> y cámbialo a <strong>Permitir</strong></li>
+            <li>Recarga la página y vuelve a hacer clic en <strong>Activar</strong></li>
+          </ol>
+          <button
+            onClick={refreshPermission}
+            className="text-xs underline text-red-500 hover:text-red-700 mt-1"
+          >
+            Ya lo activé — actualizar
+          </button>
         </div>
       )}
 
       {permission !== 'unsupported' && permission !== 'denied' && (
         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isSubscribed ? 'bg-rose-100' : 'bg-gray-100'}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              isSubscribed ? 'bg-rose-100' : 'bg-gray-100'
+            }`}>
               {isSubscribed
                 ? <BellRing size={16} className="text-rose-500" />
                 : <BellOff  size={16} className="text-gray-400" />}
@@ -172,11 +286,12 @@ export function NotificationsPanel() {
                 {isSubscribed ? 'Notificaciones activas' : 'Notificaciones inactivas'}
               </p>
               <p className="text-xs text-gray-400">
-                {isSubscribed ? 'Recibirás alertas de aniversarios' : 'Actívalas para no olvidar ningún aniversario'}
+                {isSubscribed
+                  ? 'Recibirás alertas de aniversarios'
+                  : 'Actívalas para no olvidar ningún aniversario'}
               </p>
             </div>
           </div>
-
           <Button
             size="sm"
             variant={isSubscribed ? 'secondary' : 'primary'}

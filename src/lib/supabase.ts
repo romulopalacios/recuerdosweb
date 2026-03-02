@@ -30,6 +30,19 @@ export function getPhotoUrl(path: string): string {
 }
 
 /**
+ * Returns a thumbnailed URL via Supabase Storage Image Transformations CDN.
+ * Supabase resizes on the first request and caches at edge.
+ */
+export function getThumbUrl(
+  path: string,
+  width  = 200,
+  height = 200,
+  resize: 'cover' | 'contain' | 'fill' = 'cover',
+): string {
+  return `${supabaseUrl}/storage/v1/render/image/public/${PHOTOS_BUCKET}/${path}?width=${width}&height=${height}&resize=${resize}`
+}
+
+/**
  * Upload a photo with real per-file progress via XHR.
  * Supabase JS v2 does not expose upload progress; we hit the Storage REST API directly.
  * We MUST use the user's session access_token (not the anon key) so RLS auth.uid() resolves.

@@ -48,7 +48,7 @@ export default function MemoriesPage() {
   function openEdit(m: Memory) { setEditing(m); setFormOpen(true) }
   function closeForm() { setFormOpen(false); setEditing(null) }
   function resetFilters() { setFilters(DEFAULT_FILTERS as typeof filters) }
-  const { isGuest } = useGuestMode()
+  const { isGuest, canWrite, ownerId } = useGuestMode()
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -58,7 +58,7 @@ export default function MemoriesPage() {
           <h1 className="font-display text-2xl lg:text-3xl font-bold text-gray-900">Recuerdos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Todos tus momentos especiales</p>
         </div>
-        {!isGuest && (
+        {(!isGuest || canWrite) && (
           <Button leftIcon={<Plus size={16} />} onClick={openCreate}>Nuevo recuerdo</Button>
         )}
       </div>
@@ -97,7 +97,7 @@ export default function MemoriesPage() {
           emoji="💕"
           title={isGuest ? 'No hay recuerdos compartidos' : 'Aún no hay recuerdos'}
           description={isGuest ? 'Tu pareja aún no ha creado ninguno.' : 'Crea tu primer recuerdo con título, fecha, notas, categoría y más. Cada momento importa.'}
-          action={isGuest ? undefined : { label: 'Crear primer recuerdo', onClick: openCreate, icon: <Plus size={16} /> }}
+          action={isGuest && !canWrite ? undefined : { label: 'Crear primer recuerdo', onClick: openCreate, icon: <Plus size={16} /> }}
         />
       )}
 
@@ -115,7 +115,7 @@ export default function MemoriesPage() {
       {!isLoading && memories.length > 0 && viewMode === 'grid' && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {memories.map((m) => (
-            <MemoryCard key={m.id} memory={m} onEdit={isGuest ? undefined : openEdit} layout="grid" />
+            <MemoryCard key={m.id} memory={m} onEdit={(!isGuest || canWrite) ? openEdit : undefined} layout="grid" />
           ))}
         </div>
       )}
@@ -124,7 +124,7 @@ export default function MemoriesPage() {
       {!isLoading && memories.length > 0 && viewMode === 'list' && (
         <div className="flex flex-col gap-3">
           {memories.map((m) => (
-            <MemoryCard key={m.id} memory={m} onEdit={isGuest ? undefined : openEdit} layout="list" />
+            <MemoryCard key={m.id} memory={m} onEdit={(!isGuest || canWrite) ? openEdit : undefined} layout="list" />
           ))}
         </div>
       )}
@@ -141,7 +141,7 @@ export default function MemoriesPage() {
         </button>
       )}
 
-      <MemoryForm open={formOpen} onClose={closeForm} editing={editing} />
+      <MemoryForm open={formOpen} onClose={closeForm} editing={editing} ownerId={canWrite ? (ownerId ?? undefined) : undefined} />
     </motion.div>
   )
 }

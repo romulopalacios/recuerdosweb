@@ -34,7 +34,7 @@ export function Card({ className, hover, glass, padding = 'md', children, ...pro
   )
 }
 
-interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CardHeaderProps = React.HTMLAttributes<HTMLDivElement>
 export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
     <div className={cn('flex items-center justify-between mb-4', className)} {...props}>
@@ -43,7 +43,7 @@ export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   )
 }
 
-interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+type CardTitleProps = React.HTMLAttributes<HTMLHeadingElement>
 export function CardTitle({ className, children, ...props }: CardTitleProps) {
   return (
     <h3 className={cn('font-display text-lg font-semibold text-gray-900', className)} {...props}>

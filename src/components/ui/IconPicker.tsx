@@ -35,4 +35,5 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
 }
 
 // Re-exported for convenience — source of truth is @/lib/categoryData
+// eslint-disable-next-line react-refresh/only-export-components
 export { getIconEmoji } from '@/lib/categoryData'

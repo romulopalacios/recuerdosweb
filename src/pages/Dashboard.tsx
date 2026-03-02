@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const { data: recentMemories = [] } = useMemories({ limit: 5, sort: 'date_desc' })
   const { data: favorites = [] } = useMemories({ is_favorite: true, limit: 4, sort: 'date_desc' })
   const [formOpen, setFormOpen] = useState(false)
-  const { isGuest } = useGuestMode()
+  const { isGuest, canWrite, ownerId } = useGuestMode()
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'amor'
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             size="lg"
             leftIcon={<Plus size={18} />}
             onClick={() => setFormOpen(true)}
-            className={`shrink-0 bg-white text-rose-600 hover:bg-white/90 hover:text-rose-700 border border-white/30 shadow-sm${ isGuest ? ' hidden' : ''}`}
+            className={`shrink-0 bg-white text-rose-600 hover:bg-white/90 hover:text-rose-700 border border-white/30 shadow-sm${ (isGuest && !canWrite) ? ' hidden' : ''}`}
           >
             Nuevo recuerdo
           </Button>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <MemoryForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <MemoryForm open={formOpen} onClose={() => setFormOpen(false)} ownerId={canWrite ? (ownerId ?? undefined) : undefined} />
     </motion.div>
   )
 }
