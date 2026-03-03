@@ -23,6 +23,9 @@ export default defineConfig({
       'react-dom/client',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
+      'framer-motion',
+      '@tanstack/react-query',
+      '@tanstack/react-virtual',
     ],
   },
   optimizeDeps: {
@@ -51,9 +54,15 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
+        // NOTE: React (react, react-dom, react/jsx-runtime) is intentionally
+        // NOT listed here. react-dom accesses React.__SECRET_INTERNALS at
+        // module evaluation time; placing them in a manualChunk causes Rollup
+        // to emit them in an order where react-dom evaluates before react,
+        // crashing the app with "Cannot read properties of undefined
+        // (reading '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED')".
+        // Rollup's natural chunking + resolve.dedupe above guarantees a
+        // single React copy with the correct evaluation order.
         manualChunks: {
-          // React core — always cached together
-          'vendor-react': ['react', 'react-dom', 'react/jsx-runtime'],
           // UI animation library
           'vendor-framer': ['framer-motion'],
           // Data-fetching & routing
