@@ -1,0 +1,155 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  CI / CD Pipeline — Recuerdos Web
+#  Trigger : push to main
+#  Jobs    : 1) Playwright E2E  →  2) Supabase Edge Functions  →  3) Vercel
+# ─────────────────────────────────────────────────────────────────────────────
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Cancel any in-progress run for the same branch to avoid stale deploys
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1 — Playwright E2E Tests
+  # ────────────────────────────────────────────────────────────────────────────
+  test:
+    name: "🧪 E2E Tests (Playwright · Chromium)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only install the browser used in CI (chromium) to keep the runner fast
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      # Tests mock all Supabase calls via page.route() — no live backend needed
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          # These values are passed to Vite so the app can boot during tests.
+          # The tests themselves mock all network calls, so fake values are fine,
+          # but using real ones avoids potential init errors in the app.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      # Always upload the report so you can inspect failures even after a re-run
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2 — Deploy Supabase Edge Functions
+  # Only runs after tests pass. JWT verification is ON by default (no
+  # --no-verify-jwt flag), which is the secure production setting.
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-supabase:
+    name: "⚡ Deploy Edge Functions → Supabase"
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Deploy each function individually so a single failure is easy to spot.
+      # JWT verification stays ENABLED (default) — the --no-verify-jwt flag is
+      # deliberately omitted to maintain security.
+      - name: Deploy function · process-image
+        run: |
+          supabase functions deploy process-image \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy function · send-push
+        run: |
+          supabase functions deploy send-push \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 3 — Deploy Frontend to Vercel (Production)
+  # Runs only after both previous jobs succeed.
+  # Uses the official 3-step Vercel CLI flow:
+  #   pull (download env & config)  →  build  →  deploy --prebuilt
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy-vercel:
+    name: "🚀 Deploy Frontend → Vercel"
+    needs: [test, deploy-supabase]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Pull Vercel project settings and production environment variables
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Build using Vercel's build system (respects vercel.json — outputDirectory: dist)
+      - name: Build project
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Ship the pre-built output to production — no re-build on Vercel's side
+      - name: Deploy to production
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Print the live URL so it appears in the Actions run summary
+      - name: Print deployment URL
+        run: echo "✅ Production URL → ${{ steps.deploy.outputs.url }}"

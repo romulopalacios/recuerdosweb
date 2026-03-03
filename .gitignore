@@ -35,3 +35,4 @@ supabase/.env
 # Env files (*.local ya está, pero explicitar)
 .env.local
 .env.*.local
+.vercel
