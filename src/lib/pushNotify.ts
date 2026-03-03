@@ -35,15 +35,17 @@ export function notifyOwner(payload: PushPayload): void {
       headers: { 'Authorization': `Bearer ${session.access_token}` },
     })
   }).then(({ data, error }) => {
-    if (error) {
-      console.warn('[notifyOwner] Edge Function error:', error.message)
-      return
-    }
-    const result = data as { ok: boolean; sent?: boolean; reason?: string }
-    if (!result?.sent) {
-      console.warn('[notifyOwner] push skipped — reason:', result?.reason ?? 'unknown')
+    if (import.meta.env.DEV) {
+      if (error) {
+        console.warn('[notifyOwner] Edge Function error:', error.message)
+        return
+      }
+      const result = data as { ok: boolean; sent?: boolean; reason?: string }
+      if (!result?.sent) {
+        console.warn('[notifyOwner] push skipped — reason:', result?.reason ?? 'unknown')
+      }
     }
   }).catch((err: unknown) => {
-    console.warn('[notifyOwner] invoke failed:', err)
+    if (import.meta.env.DEV) console.warn('[notifyOwner] invoke failed:', err)
   })
 }

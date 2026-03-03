@@ -4,9 +4,14 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    '⚠️  Supabase env vars not found. Copy .env.example → .env.local and fill in your credentials.',
-  )
+  if (import.meta.env.DEV) {
+    console.warn(
+      '⚠️  Supabase env vars not found. Copy .env.example → .env.local and fill in your credentials.',
+    )
+  } else {
+    // In production, fail fast — a missing URL means every API call will fail silently.
+    throw new Error('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set.')
+  }
 }
 
 export const supabase = createClient(

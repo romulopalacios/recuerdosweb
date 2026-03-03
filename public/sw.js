@@ -15,7 +15,15 @@
  *  page load and calls self.registration.showNotification directly.
  */
 
-const CACHE_NAME    = 'recuerdos-v1'
+/**
+ * ─── IMPORTANT FOR DEPLOYMENTS ───────────────────────────────────────────────
+ * Bump CACHE_VERSION on every production deploy that changes static assets.
+ * Failure to do so means users keep stale JS/CSS until their browser
+ * evicts the cache on its own (can take weeks).
+ *
+ * Convention: {app}-v{MAJOR}.{DEPLOY_DATE}  e.g. recuerdos-v1.20260302
+ */
+const CACHE_NAME    = 'recuerdos-v1.20260302'
 const STATIC_ASSETS = [
   '/',
   '/index.html',

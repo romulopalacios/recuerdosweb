@@ -23,6 +23,9 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Prevent accidental console.log statements leaking into production bundles.
+      // Use `if (import.meta.env.DEV) console.warn(...)` for intentional dev-only logs.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
 )

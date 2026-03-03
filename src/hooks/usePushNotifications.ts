@@ -89,7 +89,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         const existing = await reg.pushManager.getSubscription()
         setIsSubscribed(Boolean(existing))
       })
-      .catch(console.error)
+      .catch((e: unknown) => {
+        if (import.meta.env.DEV) console.error('[usePushNotifications] SW registration error', e)
+      })
   }, [])
 
   // Manual refresh — re-reads the real browser permission state
@@ -179,7 +181,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       setIsSubscribed(true)
       toast.success('¡Notificaciones activadas! 💕')
     } catch (err: unknown) {
-      console.error('[usePushNotifications] subscribe error', err)
+      if (import.meta.env.DEV) console.error('[usePushNotifications] subscribe error', err)
       toast.error(err instanceof Error ? err.message : 'No se pudo activar las notificaciones')
     } finally {
       setIsRegistering(false)
