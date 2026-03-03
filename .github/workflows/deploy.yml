@@ -134,8 +134,12 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       # Build using Vercel's build system (respects vercel.json — outputDirectory: dist)
+      # VITE_ vars are injected at build time so the bundle has the Supabase config
       - name: Build project
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }} \
+            --build-env VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }} \
+            --build-env VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
