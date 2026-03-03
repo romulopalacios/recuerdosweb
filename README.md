@@ -278,6 +278,6 @@ Crea un bucket público llamado `photos` en Supabase Storage. La aplicación asu
 
 | Documento | Descripción |
 |---|---|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Arquitectura del sistema, ciclo de vida de Notificaciones Push, flujos de Edge Functions, sistema de compartición |
-| [DATABASE.md](./DATABASE.md) | Esquemas de tablas, políticas RLS, historial de migraciones |
-| [HOOKS.md](./HOOKS.md) | Referencia de hooks personalizados, integración de React Query, singleton QueryClient |
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura del sistema, ciclo de vida de Notificaciones Push, flujos de Edge Functions, sistema de compartición |
+| [DATABASE.md](./docs/DATABASE.md) | Esquemas de tablas, políticas RLS, historial de migraciones |
+| [HOOKS.md](./docs/HOOKS.md) | Referencia de hooks personalizados, integración de React Query, singleton QueryClient |
