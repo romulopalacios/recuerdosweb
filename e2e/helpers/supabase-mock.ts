@@ -238,6 +238,31 @@ export async function mockTable(
   })
 }
 
+// ─── RPC mocks ──────────────────────────────────────────────────────────────
+
+/**
+ * Mock a Supabase RPC function call.
+ * The RPC endpoint is POST /rest/v1/rpc/{fnName}.
+ * @param result  - The data to return on success (null to skip).
+ * @param opts.error - If set, return a 400 PostgREST error with this as the message.
+ */
+export async function mockRpc(
+  page: Page,
+  fnName: string,
+  result: object | null,
+  opts: { error?: string } = {},
+) {
+  await page.route(`**/rest/v1/rpc/${fnName}**`, async (route: Route) => {
+    if (opts.error) {
+      await route.fulfill(
+        json({ message: opts.error, code: 'P0001', details: null, hint: null }, 400),
+      )
+    } else {
+      await route.fulfill(json(result ?? {}))
+    }
+  })
+}
+
 // ─── Storage mocks ────────────────────────────────────────────────────────────
 
 export async function mockStorage(

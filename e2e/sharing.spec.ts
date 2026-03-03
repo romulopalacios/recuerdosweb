@@ -15,7 +15,7 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { mockAuth, mockTable, setupAuthenticatedPage } from './helpers/supabase-mock'
+import { mockAuth, mockTable, mockRpc, setupAuthenticatedPage } from './helpers/supabase-mock'
 import {
   MOCK_SESSION,
   MOCK_GUEST_USER,
@@ -84,8 +84,9 @@ test('/invite/:token: valid token shows success then redirects to /dashboard', a
   const guestSession = { ...MOCK_SESSION, user: MOCK_GUEST_USER }
   await mockAuth(page, { session: guestSession })
 
-  const updateResult = { ...MOCK_SHARE, accepted_at: new Date().toISOString(), guest_user_id: MOCK_GUEST_USER.id }
-  await mockTable(page, 'shared_access', [MOCK_SHARE], { updateResult })
+  const acceptedShare = { ...MOCK_SHARE, accepted_at: new Date().toISOString(), guest_user_id: MOCK_GUEST_USER.id }
+  // acceptInvite() calls supabase.rpc('accept_shared_invite') — intercept the RPC
+  await mockRpc(page, 'accept_shared_invite', acceptedShare)
   await mockTable(page, 'memories',   [MOCK_MEMORY])
   await mockTable(page, 'categories', [MOCK_CATEGORY])
   await mockTable(page, 'photos',     [MOCK_PHOTO])
@@ -104,11 +105,8 @@ test('BUG-04 regression: expired invite token shows "ha expirado" message', asyn
   const guestSession = { ...MOCK_SESSION, user: MOCK_GUEST_USER }
   await mockAuth(page, { session: guestSession })
 
-  const expiredShare = {
-    ...MOCK_SHARE,
-    expires_at: new Date(Date.now() - 1000).toISOString(), // already expired
-  }
-  await mockTable(page, 'shared_access', [expiredShare])
+  // The RPC validates expiry server-side and raises EXPIRED — mock that response
+  await mockRpc(page, 'accept_shared_invite', null, { error: 'EXPIRED' })
 
   await page.goto(`/invite/${MOCK_SHARE.invite_token}`)
 
@@ -122,12 +120,8 @@ test('BUG-04 regression: already-used token shows "ya fue aceptado" message', as
   const guestSession = { ...MOCK_SESSION, user: MOCK_GUEST_USER }
   await mockAuth(page, { session: guestSession })
 
-  const usedShare = {
-    ...MOCK_SHARE,
-    accepted_at: new Date(Date.now() - 60_000).toISOString(),
-    guest_user_id: 'some-other-user-id',
-  }
-  await mockTable(page, 'shared_access', [usedShare])
+  // The RPC validates reuse server-side and raises ALREADY_USED — mock that response
+  await mockRpc(page, 'accept_shared_invite', null, { error: 'ALREADY_USED' })
 
   await page.goto(`/invite/${MOCK_SHARE.invite_token}`)
 
