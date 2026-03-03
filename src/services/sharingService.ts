@@ -63,9 +63,17 @@ export async function createInviteLink({
 // ─── List active shares ───────────────────────────────────────────────────────
 
 export async function getMyShares(): Promise<SharedAccess[]> {
+  // SEC: always scope to the current user's owner_id as defense-in-depth.
+  // RLS migration-2 permits any authenticated user to SELECT all pending
+  // invite rows (needed for token acceptance). Without this explicit filter
+  // a future query could inadvertently return other owners' invite metadata.
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data, error } = await supabase
     .from('shared_access')
     .select('*')
+    .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -78,61 +86,32 @@ export async function acceptInvite(token: string): Promise<SharedAccess> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('You must be logged in to accept an invite')
 
-  // Validate the token is unused and not expired.
-  // NOTE: RLS must include a policy that allows SELECT on pending rows.
-  // If get PGRST116 (0 rows / 406) the token is invalid, expired, or already used.
-  const { data: row, error: fetchError } = await supabase
-    .from('shared_access')
-    .select('*')
-    .eq('invite_token', token)
-    .single()
+  // SEC: Use the SECURITY DEFINER RPC function which:
+  //   • Never exposes other users' invite rows (no direct SELECT on shared_access)
+  //   • Validates token, expiry, email restriction, and marks accepted atomically
+  //   • Row-locks against concurrent accept races
+  const { data, error } = await supabase.rpc('accept_shared_invite', { p_token: token })
 
-  if (fetchError?.code === 'PGRST116' || !row) {
-    throw new Error('Este enlace no es válido o ya ha sido usado. Pide uno nuevo.')
-  }
-  if (fetchError) throw new Error(fetchError.message)
-
-  const share = row as SharedAccess
-
-  // Already accepted — might be this same guest re-opening the link
-  if (share.accepted_at !== null) {
-    if (share.guest_user_id === user.id) {
-      // Already accepted by this user — treat as success, just return
-      return share
+  if (error) {
+    const msg = error.message ?? ''
+    if (msg.includes('INVALID_TOKEN'))
+      throw new Error('Este enlace no es válido o ya ha sido usado. Pide uno nuevo.')
+    if (msg.includes('OWN_INVITE'))
+      throw new Error('No puedes aceptar tu propia invitación.')
+    if (msg.includes('EXPIRED'))
+      throw new Error('Este enlace ha expirado. Pide uno nuevo.')
+    if (msg.includes('WRONG_EMAIL')) {
+      const email = msg.split('WRONG_EMAIL:')[1]?.trim() ?? ''
+      throw new Error(
+        `Este enlace fue creado para ${email}. Inicia sesión con esa cuenta para aceptarlo.`
+      )
     }
-    throw new Error('Este enlace ya fue aceptado por otra persona.')
+    if (msg.includes('ALREADY_USED'))
+      throw new Error('Este enlace ya fue aceptado por otra persona.')
+    throw new Error(error.message)
   }
 
-  // Cannot accept your own invite
-  if (share.owner_id === user.id) {
-    throw new Error('No puedes aceptar tu propia invitación.')
-  }
-
-  // Email restriction: if the owner set a specific email, only that address can accept
-  if (share.guest_email && user.email?.toLowerCase().trim() !== share.guest_email) {
-    throw new Error(
-      `Este enlace fue creado para ${share.guest_email}. Inicia sesión con esa cuenta para aceptarlo.`
-    )
-  }
-
-  // Token expired
-  if (new Date(share.expires_at) < new Date()) {
-    throw new Error('Este enlace ha expirado. Pide uno nuevo.')
-  }
-
-  // Accept: set guest_user_id and accepted_at
-  const { data: updated, error: updateError } = await supabase
-    .from('shared_access')
-    .update({
-      guest_user_id: user.id,
-      accepted_at:   new Date().toISOString(),
-    })
-    .eq('invite_token', token)
-    .select()
-    .single()
-
-  if (updateError) throw new Error(updateError.message)
-  return updated as SharedAccess
+  return data as SharedAccess
 }
 
 // ─── Revoke a share ───────────────────────────────────────────────────────────
@@ -157,6 +136,7 @@ export async function getSharedOwner(): Promise<string | null> {
     .select('owner_id')
     .eq('guest_user_id', user.id)
     .not('accepted_at', 'is', null)
+    .gt('expires_at', new Date().toISOString())   // BUG-03 fix: skip expired shares
     .order('accepted_at', { ascending: false })
     .limit(1)
     .single()

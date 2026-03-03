@@ -48,9 +48,16 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+// SEC: allowlist of extensions that may appear in storage paths.
+// Prevents storing files like "payload.html" via a renamed upload.
+const SAFE_PHOTO_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'])
+
 /** Generate a unique storage path for a photo */
 export function buildPhotoPath(userId: string, memoryId: string, filename: string): string {
-  const ext = filename.split('.').pop() ?? 'jpg'
+  const parts = filename.split('.')
+  const rawExt = (parts.length > 1 && parts[0] !== '' ? parts.pop()! : '').toLowerCase()
+  // SEC: only allow safe image extensions; fall back to 'jpg' for anything else
+  const ext = SAFE_PHOTO_EXTENSIONS.has(rawExt) ? rawExt : 'jpg'
   const ts = Date.now()
   return `${userId}/${memoryId}/${ts}.${ext}`
 }

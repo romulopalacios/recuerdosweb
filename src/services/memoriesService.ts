@@ -51,7 +51,10 @@ export async function getMemories(opts: GetMemoriesOptions = {}): Promise<Memory
 
   // Filters
   if (search) {
-    query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%,location.ilike.%${search}%`)
+    // BUG-06 fix: escape SQL LIKE wildcard characters so a literal '%' or '_'
+    // in the search box doesn't match everything.
+    const safe = search.replace(/[%_\\]/g, '\\$&')
+    query = query.or(`title.ilike.%${safe}%,content.ilike.%${safe}%,location.ilike.%${safe}%`)
   }
   if (category_id) query = query.eq('category_id', category_id)
   if (mood) query = query.eq('mood', mood)

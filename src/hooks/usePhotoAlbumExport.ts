@@ -20,6 +20,7 @@
 import { useState, useCallback } from 'react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { toast } from 'sonner'
 import type { Photo } from '@/types'
 
 // jsPDF is loaded lazily — only when the user clicks "Exportar PDF".
@@ -92,11 +93,21 @@ const PAGE_W  = 297   // A4 landscape width mm
 const PAGE_H  = 210   // A4 landscape height mm
 const MARGIN  = 14
 
+/** BUG-14: hard cap to prevent browser freeze on huge selections */
+const MAX_EXPORT_PHOTOS = 200
+
 // ─── Colour helpers ────────────────────────────────────────────────────────────
 
-/** Parse a #rrggbb hex string into [r, g, b] 0-255 */
+/** Parse a #rrggbb (or #rgb) hex string into [r, g, b] 0-255.
+ * BUG-07 fix: normalise 3-char hex and fall back to rose-600 for invalid input.
+ */
 function hexToRgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.replace('#', ''), 16)
+  let h = hex.replace('#', '')
+  // Expand shorthand #rgb → #rrggbb
+  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2]
+  // Reject anything that isn't exactly 6 hex digits
+  if (!/^[0-9a-f]{6}$/i.test(h)) return [225, 29, 72]  // rose-600 fallback
+  const n = parseInt(h, 16)
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
@@ -125,6 +136,13 @@ export function usePhotoAlbumExport(): UsePhotoAlbumExportReturn {
     opts: AlbumExportOptions = {},
   ) => {
     if (photos.length === 0 || isExporting) return
+
+    // BUG-14 fix: bail out early with a friendly toast instead of freezing the
+    // browser thread with hundreds of sequential fetches + a monster PDF.
+    if (photos.length > MAX_EXPORT_PHOTOS) {
+      toast.error(`El álbum no puede superar ${MAX_EXPORT_PHOTOS} fotos. Selecciona menos (tienes ${photos.length}).`)
+      return
+    }
 
     const {
       title         = 'Nuestros Recuerdos 💕',
@@ -490,6 +508,11 @@ export function usePhotoAlbumExport(): UsePhotoAlbumExportReturn {
       setProgress(100)
       const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}.pdf`
       pdf.save(filename)
+
+      // BUG-08 fix: pause so the 100% state actually renders before we reset.
+      // Without this, setProgress(100) and setProgress(0) collapse into the
+      // same React render tick and the completed state is never visible.
+      await new Promise((r) => setTimeout(r, 700))
     } finally {
       setIsExporting(false)
       setProgress(0)

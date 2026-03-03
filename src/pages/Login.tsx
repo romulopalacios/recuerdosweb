@@ -18,7 +18,14 @@ export default function LoginPage() {
   const { signIn, signUp, loading } = useAuthStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard'
+
+  // SEC: sanitise redirect param to prevent open-redirect attacks.
+  // Only allow same-origin relative paths (must start with '/' but NOT '//').
+  const rawRedirect = searchParams.get('redirect') ?? '/dashboard'
+  const redirectTo =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+      ? rawRedirect
+      : '/dashboard'
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })

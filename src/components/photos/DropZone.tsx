@@ -1,8 +1,14 @@
 import { useRef, useState, useCallback } from 'react'
 import { Upload, ImagePlus } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-const ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic']
+// SEC: Both MIME type AND file extension are validated together to prevent
+// type-confusion attacks (e.g. a renamed .html or .php file with a spoofed MIME).
+const ACCEPT_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic'])
+const ACCEPT_EXT  = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'])
+/** Keep the legacy `ACCEPT` export so the <input accept="…"> attribute still works */
+const ACCEPT = [...ACCEPT_MIME]
 const MAX_SIZE_MB = 20
 
 interface DropZoneProps {
@@ -17,11 +23,32 @@ export function DropZone({ onFiles, disabled, className }: DropZoneProps) {
 
   function filterFiles(raw: FileList | null): File[] {
     if (!raw) return []
-    return Array.from(raw).filter((f) => {
-      if (!ACCEPT.includes(f.type)) return false
-      if (f.size > MAX_SIZE_MB * 1024 * 1024) return false
-      return true
-    })
+    const all = Array.from(raw)
+    const valid: File[] = []
+    const rejected: string[] = []
+
+    for (const f of all) {
+      // SEC: cross-validate MIME type AND file extension — either alone can be spoofed
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
+      const mimeOk = ACCEPT_MIME.has(f.type)
+      const extOk  = ACCEPT_EXT.has(ext)
+
+      if (!mimeOk || !extOk) {
+        rejected.push(`«${f.name}»: tipo no soportado`)
+      } else if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+        rejected.push(`«${f.name}»: supera ${MAX_SIZE_MB} MB`)
+      } else {
+        valid.push(f)
+      }
+    }
+
+    // BUG-11 fix: notify user about rejected files instead of silently dropping them
+    if (rejected.length > 0) {
+      toast.warning(
+        `${rejected.length} archivo${rejected.length > 1 ? 's' : ''} no se puede${rejected.length > 1 ? 'n' : ''} subir:\n${rejected.join(', ')}`,
+      )
+    }
+    return valid
   }
 
   const handleDrop = useCallback(

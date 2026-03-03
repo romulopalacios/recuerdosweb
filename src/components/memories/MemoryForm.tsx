@@ -22,11 +22,19 @@ import { cn } from '@/lib/utils'
 const schema = z.object({
   title:       z.string().min(1, 'El título es obligatorio').max(100),
   content:     z.string().max(5000).optional(),
-  memory_date: z.string().min(1, 'La fecha es obligatoria'),
+  // BUG-12 fix: reject obviously absurd dates (before 1900 or more than 1 year in the future)
+  memory_date: z.string().min(1, 'La fecha es obligatoria').refine((v) => {
+    const d = new Date(v)
+    if (isNaN(d.getTime())) return false
+    const min = new Date('1900-01-01')
+    const max = new Date()
+    max.setFullYear(max.getFullYear() + 1)
+    return d >= min && d <= max
+  }, 'La fecha debe estar entre 1900 y un año desde hoy'),
   category_id: z.string().optional(),
   location:    z.string().max(100).optional(),
   mood:        z.enum(['happy', 'romantic', 'nostalgic', 'excited', 'peaceful']).optional(),
-  tags:        z.array(z.string()).max(10).default([]),
+  tags:        z.array(z.string().min(1).max(30)).max(10).default([]),
   is_favorite: z.boolean().default(false),
 })
 

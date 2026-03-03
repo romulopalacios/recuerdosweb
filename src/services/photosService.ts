@@ -70,12 +70,15 @@ export async function addPhoto({ memoryId, userId, file, onProgress }: UploadPho
     throw error
   }
 
-  // Auto-set as cover image when this is the first photo added to a memory
-  const { count } = await supabase
-    .from('photos')
-    .select('*', { count: 'exact', head: true })
-    .eq('memory_id', memoryId)
-  if (count === 1) {
+  // Auto-set as cover image when this is the first photo added to a memory.
+  // BUG-15 fix: check cover_photo_url IS NULL instead of counting rows to
+  // reduce the race-condition window on concurrent batch uploads.
+  const { data: memData } = await supabase
+    .from('memories')
+    .select('cover_photo_url')
+    .eq('id', memoryId)
+    .single()
+  if (!memData?.cover_photo_url) {
     await setCoverPhoto((data as Photo).id, memoryId, publicUrl).catch(() => null)
   }
 
@@ -97,7 +100,11 @@ export async function deletePhoto(id: string, storagePath: string): Promise<void
   const { error: storageError } = await supabase.storage
     .from(PHOTOS_BUCKET)
     .remove([storagePath])
-  if (storageError) console.warn('Storage delete failed:', storageError.message)
+
+  // BUG-09 fix: if storage delete fails we stop here so the DB record (and its
+  // public_url) remains valid. A silently-orphaned file is preferable to a DB
+  // row pointing at a file that no longer exists.
+  if (storageError) throw new Error(`No se pudo eliminar el archivo: ${storageError.message}`)
 
   const { error } = await supabase.from('photos').delete().eq('id', id)
   if (error) throw error
@@ -106,15 +113,20 @@ export async function deletePhoto(id: string, storagePath: string): Promise<void
 /**
  * Batch-update order_index for a set of photos.
  * Used by drag-&-drop reordering in PhotoCarousel.
+ * BUG-05 fix: collect all update errors and throw if any fail.
  */
 export async function reorderPhotos(
   updates: { id: string; order_index: number }[],
 ): Promise<void> {
-  await Promise.all(
+  const results = await Promise.all(
     updates.map(({ id, order_index }) =>
       supabase.from('photos').update({ order_index }).eq('id', id),
     ),
   )
+  const failed = results.filter((r) => r.error)
+  if (failed.length > 0) {
+    throw new Error(`Error al reordenar ${failed.length} foto(s): ${failed[0].error!.message}`)
+  }
 }
 
 /** Set a photo as the cover image for its memory. */

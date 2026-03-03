@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, XCircle, Loader2, X } from 'lucide-react'
 import { DropZone } from './DropZone'
@@ -10,6 +10,8 @@ import { photoKeys } from '@/hooks/usePhotos'
 import { toast } from 'sonner'
 import { formatBytes } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
+import { notifyOwner } from '@/lib/pushNotify'
 import type { UploadProgress } from '@/types'
 
 interface PhotoUploaderProps {
@@ -53,7 +55,7 @@ export function PhotoUploader({ memoryId, userId, coverUrl, readonly }: PhotoUpl
     for (const item of items) {
       updateQueue(item.file, { status: 'uploading', progress: 0 })
       try {
-        await addPhoto({
+        const photo = await addPhoto({
           memoryId,
           userId,
           file: item.file,
@@ -61,6 +63,20 @@ export function PhotoUploader({ memoryId, userId, coverUrl, readonly }: PhotoUpl
         })
         updateQueue(item.file, { status: 'done', progress: 100 })
         successCount++
+
+        // BUG-01 fix: PhotoUploader calls addPhoto directly (bypassing useAddPhoto
+        // hook), so we must replicate the push-notification logic here.
+        // If the uploaded photo's owner differs from the signed-in user we're in
+        // guest (write-permission) mode — notify the owner.
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (currentUser && photo.user_id !== currentUser.id) {
+          notifyOwner({
+            owner_id: photo.user_id,
+            title:    '¡Nueva foto añadida! 📸',
+            body:     'Tu pareja ha añadido una foto a tus recuerdos.',
+            url:      `/memories/${memoryId}`,
+          })
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error desconocido'
         updateQueue(item.file, { status: 'error', error: msg, progress: 0 })
@@ -154,8 +170,14 @@ export function PhotoUploader({ memoryId, userId, coverUrl, readonly }: PhotoUpl
 function QueueItem({ item, onRemove }: { item: UploadProgress; onRemove: () => void }) {
   const { file, progress, status, error } = item
 
-  // Build object URL for preview thumbnail
-  const previewUrl = URL.createObjectURL(file)
+  // SEC/MEM: create the object URL once and revoke it on unmount to avoid
+  // keeping sensitive image data in memory after the upload is dismissed.
+  const [previewUrl, setPreviewUrl] = useState('')
+  useEffect(() => {
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
 
   return (
     <motion.div

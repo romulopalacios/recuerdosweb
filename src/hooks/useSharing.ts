@@ -1,3 +1,4 @@
+import React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { notifyOwner } from '@/lib/pushNotify'
@@ -46,9 +47,19 @@ export function useCreateInvite() {
 
 // ─── Accept invite ────────────────────────────────────────────────────────────
 
-export function useAcceptInvite() {
+interface AcceptInviteCallbacks {
+  onAccepted?: () => void
+  onFailed?: (message: string) => void
+}
+
+export function useAcceptInvite(callbacks?: AcceptInviteCallbacks) {
+  const callbacksRef = React.useRef(callbacks)
+  callbacksRef.current = callbacks
+
   return useMutation({
     mutationFn: (token: string) => acceptInvite(token),
+    // Global onSuccess fires even under React 18 StrictMode double-effect,
+    // because it goes through MutationCache, not the component observer.
     onSuccess: (share) => {
       // Notify the owner that someone accepted their invite
       notifyOwner({
@@ -58,8 +69,12 @@ export function useAcceptInvite() {
         url:      '/settings',
       })
       toast.success('¡Acceso compartido aceptado! Ahora puedes ver los recuerdos 💕')
+      callbacksRef.current?.onAccepted?.()
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      toast.error(err.message)
+      callbacksRef.current?.onFailed?.(err.message)
+    },
   })
 }
 

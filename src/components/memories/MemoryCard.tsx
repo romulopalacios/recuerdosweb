@@ -32,7 +32,7 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
     return (
       <>
         <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} layout>
-          <div className="group flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-card p-4 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5">
+          <div data-testid="memory-card" className="group flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-card p-4 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5">
             {/* cover / placeholder */}
             <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center text-xl">
               {memory.cover_photo_url ? (
@@ -109,7 +109,7 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} layout>
-        <div className="group flex flex-col overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card transition-all duration-250 hover:shadow-card-hover hover:-translate-y-1">
+        <div data-testid="memory-card" className="group flex flex-col overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card transition-all duration-250 hover:shadow-card-hover hover:-translate-y-1">
           {/* Cover image — auto-rotating carousel */}
           <div className="relative h-44 bg-gray-100 overflow-hidden flex-shrink-0">
             <CardCarousel memoryId={memory.id} coverUrl={memory.cover_photo_url} />
@@ -300,6 +300,7 @@ function MemoryMenu({
     <div className="relative flex-shrink-0">
       <button
         type="button"
+        data-testid="memory-menu-trigger"
         onClick={() => setOpen(!open)}
         className="p-1.5 rounded-lg hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
       >

@@ -41,6 +41,7 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        data-testid="lightbox"
         className="fixed inset-0 z-[200] flex flex-col bg-black/95"
         onClick={onClose}
       >

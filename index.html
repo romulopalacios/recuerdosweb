@@ -2,6 +2,23 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      SEC: Content-Security-Policy — restricts resource origins to reduce
+      the blast radius of any future XSS vulnerability.
+      Note: `frame-ancestors` must be set as an HTTP response header (not meta);
+      configure it in your hosting platform (Vercel/Netlify/Nginx) as well.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src  'self';
+      style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src    'self' https://fonts.gstatic.com;
+      img-src     'self' data: blob: https://*.supabase.co;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+      object-src  'none';
+      base-uri    'self';
+      form-action 'self';
+    " />
     <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
     <!-- Theme color (browser toolbar / status bar on mobile) -->

@@ -21,11 +21,25 @@ export default function InvitePage() {
   const { token }   = useParams<{ token: string }>()
   const navigate    = useNavigate()
   const { user, initialized } = useAuthStore()
-  const acceptMut   = useAcceptInvite()
   const [state, setState]     = useState<PageState>('loading')
   const [errMsg, setErrMsg]   = useState('')
   // Prevent double-firing when auth state loads asynchronously
   const attemptedRef = useRef(false)
+
+  // Callbacks live in the global useMutation onSuccess/onError so they fire
+  // correctly under React 18 StrictMode double-effect invocation (the observer
+  // gets detached during the simulated unmount, but MutationCache callbacks run
+  // regardless of observer subscription status).
+  const acceptMut = useAcceptInvite({
+    onAccepted: () => {
+      setState('success')
+      setTimeout(() => navigate('/dashboard', { replace: true }), 2500)
+    },
+    onFailed: (message) => {
+      setState('error')
+      setErrMsg(message)
+    },
+  })
 
   useEffect(() => {
     if (!token) { setState('error'); setErrMsg('Enlace inválido'); return }
@@ -41,16 +55,7 @@ export default function InvitePage() {
     }
 
     attemptedRef.current = true
-    acceptMut.mutate(token, {
-      onSuccess: () => {
-        setState('success')
-        setTimeout(() => navigate('/dashboard', { replace: true }), 2500)
-      },
-      onError: (err: Error) => {
-        setState('error')
-        setErrMsg(err.message)
-      },
-    })
+    acceptMut.mutate(token)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user, initialized])
 
