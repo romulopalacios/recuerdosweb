@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion'
 import {
   Search, X, LayoutDashboard, Heart, Clock, Images, Tag, Settings,
   MapPin, ArrowRight,
@@ -109,11 +109,12 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
+    <LazyMotion features={domAnimation}>
+      <AnimatePresence>
+        {open && (
+          <>
           {/* Backdrop */}
-          <motion.div
+            <m.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -124,7 +125,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           />
 
           {/* Panel */}
-          <motion.div
+            <m.div
             key="panel"
             initial={{ opacity: 0, scale: 0.96, y: -12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -238,10 +239,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 {query && <span className="ml-auto">{results.length} resultado{results.length !== 1 ? 's' : ''}</span>}
               </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </m.div>
+          </>
+        )}
+      </AnimatePresence>
+    </LazyMotion>
   )
 }
 

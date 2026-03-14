@@ -1,4 +1,3 @@
-// @ts-nocheck — Deno runtime; compiled & deployed by Supabase CLI, not tsc
 /**
  * Supabase Edge Function — send-push
  * ─────────────────────────────────────────────────────────────────────────────

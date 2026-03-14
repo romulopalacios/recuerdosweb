@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Download, ExternalLink } from 'lucide-react'
 import type { Photo } from '@/types'
 
@@ -36,8 +36,9 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
   if (!current) return null
 
   return createPortal(
-    <AnimatePresence>
-      <motion.div
+    <LazyMotion features={domAnimation}>
+      <AnimatePresence>
+        <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -114,7 +115,7 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
             }
           }}
         >
-          <motion.img
+          <m.img
             key={current.id}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -174,8 +175,9 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
             ))}
           </div>
         )}
-      </motion.div>
-    </AnimatePresence>,
+        </m.div>
+      </AnimatePresence>
+    </LazyMotion>,
     document.body,
   )
 }

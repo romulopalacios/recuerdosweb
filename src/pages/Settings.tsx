@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -257,7 +257,8 @@ export default function SettingsPage() {
   const { user } = useAuthStore()
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-xl">
+    <LazyMotion features={domAnimation}>
+      <m.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-xl">
       <div>
         <h1 className="font-display text-2xl lg:text-3xl font-bold text-gray-900">Configuración</h1>
         <p className="text-sm text-gray-500 mt-0.5">Gestiona tu cuenta y preferencias</p>
@@ -305,6 +306,7 @@ export default function SettingsPage() {
       </Card>
 
       <DangerZone />
-    </motion.div>
+      </m.div>
+    </LazyMotion>
   )
 }

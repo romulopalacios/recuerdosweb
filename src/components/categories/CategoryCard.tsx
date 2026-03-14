@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -35,12 +35,13 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        layout
-      >
-        <Card className="relative group overflow-hidden" hover>
+      <LazyMotion features={domAnimation}>
+        <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          layout
+        >
+          <Card className="relative group overflow-hidden" hover>
           {/* Color bar */}
           <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`} />
 
@@ -100,8 +101,9 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
             </div>
             )}
           </div>
-        </Card>
-      </motion.div>
+          </Card>
+        </m.div>
+      </LazyMotion>
 
       <ConfirmDialog
         open={confirmOpen}

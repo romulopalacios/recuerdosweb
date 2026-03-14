@@ -13,15 +13,48 @@
  *  • Action buttons, Lightbox, delete/caption dialogs are preserved from the
  *    original PhotoGrid so existing call-sites only need to swap the component.
  */
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useState, useReducer, useEffect, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { motion } from 'framer-motion'
 import { Trash2, Star, Maximize2, Pencil } from 'lucide-react'
 import { Lightbox } from './Lightbox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
+import { CaptionEditorModal } from './CaptionEditorModal'
 import { useDeletePhoto, useSetCoverPhoto, useUpdatePhoto } from '@/hooks/usePhotos'
 import type { Photo } from '@/types'
+
+// ─── Dialog state reducer ─────────────────────────────────────────────────
+
+type DialogState = {
+  lightboxIndex: number | null
+  deleteTarget: Photo | null
+  captionTarget: Photo | null
+  captionText: string
+}
+type DialogAction =
+  | { type: 'OPEN_LIGHTBOX'; index: number }
+  | { type: 'CLOSE_LIGHTBOX' }
+  | { type: 'OPEN_DELETE'; photo: Photo }
+  | { type: 'CLOSE_DELETE' }
+  | { type: 'OPEN_CAPTION'; photo: Photo; text: string }
+  | { type: 'UPDATE_CAPTION_TEXT'; text: string }
+  | { type: 'CLOSE_CAPTION' }
+
+function dialogReducer(state: DialogState, action: DialogAction): DialogState {
+  switch (action.type) {
+    case 'OPEN_LIGHTBOX':       return { ...state, lightboxIndex: action.index }
+    case 'CLOSE_LIGHTBOX':      return { ...state, lightboxIndex: null }
+    case 'OPEN_DELETE':         return { ...state, deleteTarget: action.photo }
+    case 'CLOSE_DELETE':        return { ...state, deleteTarget: null }
+    case 'OPEN_CAPTION':        return { ...state, captionTarget: action.photo, captionText: action.text }
+    case 'UPDATE_CAPTION_TEXT': return { ...state, captionText: action.text }
+    case 'CLOSE_CAPTION':       return { ...state, captionTarget: null, captionText: '' }
+    default:                    return state
+  }
+}
+
+const initialDialog: DialogState = { lightboxIndex: null, deleteTarget: null, captionTarget: null, captionText: '' }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,25 +114,23 @@ export function VirtualPhotoGrid({
   })
 
   // ── Dialog / lightbox state ───────────────────────────────────────────────
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const [deleteTarget,  setDeleteTarget]  = useState<Photo | null>(null)
-  const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
-  const [captionText,   setCaptionText]   = useState('')
+  const [dialog, dispatch] = useReducer(dialogReducer, initialDialog)
   const captionInputRef = useRef<HTMLInputElement>(null)
 
   const deleteMutation  = useDeletePhoto(memoryId)
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
 
-  useEffect(() => {
-    if (captionTarget) captionInputRef.current?.focus()
-  }, [captionTarget])
+  const openCaption = useCallback((photo: Photo) => {
+    flushSync(() => dispatch({ type: 'OPEN_CAPTION', photo, text: photo.caption ?? '' }))
+    captionInputRef.current?.focus()
+  }, [])
 
   // ── Stable open-lightbox callback so cell renders don't thrash ───────────
-  const openLightbox = useCallback((idx: number) => setLightboxIndex(idx), [])
+  const openLightbox = useCallback((idx: number) => dispatch({ type: 'OPEN_LIGHTBOX', index: idx }), [])
 
-  // ── Build flat index → photo lookup for lightbox navigation ──────────────
-  const flatPhotos = useMemo(() => photos, [photos])
+  // ── Flat index → photo lookup for lightbox navigation ─────────────────────
+  const flatPhotos = photos
 
   if (photos.length === 0) return null
 
@@ -182,7 +213,7 @@ export function VirtualPhotoGrid({
                             )}
                             <button
                               type="button"
-                              onClick={() => { setCaptionTarget(photo); setCaptionText(photo.caption ?? '') }}
+                              onClick={() => openCaption(photo)}
                               title="Editar descripción"
                               className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/40 transition-all cursor-pointer backdrop-blur-sm"
                             >
@@ -190,7 +221,7 @@ export function VirtualPhotoGrid({
                             </button>
                             <button
                               type="button"
-                              onClick={() => setDeleteTarget(photo)}
+                              onClick={() => dispatch({ type: 'OPEN_DELETE', photo })}
                               title="Eliminar"
                               className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-red-500 transition-all cursor-pointer backdrop-blur-sm"
                             >
@@ -227,23 +258,23 @@ export function VirtualPhotoGrid({
       </p>
 
       {/* Lightbox */}
-      {lightboxIndex !== null && (
+      {dialog.lightboxIndex !== null && (
         <Lightbox
           photos={flatPhotos}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
+          index={dialog.lightboxIndex}
+          onClose={() => dispatch({ type: 'CLOSE_LIGHTBOX' })}
+          onNavigate={(i) => dispatch({ type: 'OPEN_LIGHTBOX', index: i })}
         />
       )}
 
       {/* Delete confirm */}
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
+        open={Boolean(dialog.deleteTarget)}
+        onClose={() => dispatch({ type: 'CLOSE_DELETE' })}
         onConfirm={async () => {
-          if (!deleteTarget) return
-          await deleteMutation.mutateAsync({ id: deleteTarget.id, storagePath: deleteTarget.storage_path })
-          setDeleteTarget(null)
+          if (!dialog.deleteTarget) return
+          await deleteMutation.mutateAsync({ id: dialog.deleteTarget.id, storagePath: dialog.deleteTarget.storage_path })
+          dispatch({ type: 'CLOSE_DELETE' })
         }}
         title="Eliminar foto"
         description="¿Seguro que quieres eliminar esta foto? No se puede recuperar."
@@ -253,59 +284,20 @@ export function VirtualPhotoGrid({
       />
 
       {/* Caption editor */}
-      {captionTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="button"
-          tabIndex={0}
-          aria-label="Cerrar editor de descripción"
-          onClick={() => setCaptionTarget(null)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setCaptionTarget(null)
-            }
+      {dialog.captionTarget && (
+        <CaptionEditorModal
+          ref={captionInputRef}
+          photo={dialog.captionTarget}
+          captionText={dialog.captionText}
+          isSaving={captionMutation.isPending}
+          onChange={(text) => dispatch({ type: 'UPDATE_CAPTION_TEXT', text })}
+          onClose={() => dispatch({ type: 'CLOSE_CAPTION' })}
+          onSave={async () => {
+            if (!dialog.captionTarget) return
+            await captionMutation.mutateAsync({ id: dialog.captionTarget.id, input: { caption: dialog.captionText.trim() || undefined } })
+            dispatch({ type: 'CLOSE_CAPTION' })
           }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-display font-bold text-gray-900 mb-3">Descripción de la foto</h3>
-            <img src={captionTarget.public_url} alt="" className="w-full h-40 object-cover rounded-xl mb-3" />
-            <input
-              ref={captionInputRef}
-              type="text"
-              value={captionText}
-              onChange={(e) => setCaptionText(e.target.value)}
-              placeholder="Añade una descripción…"
-              maxLength={120}
-              className="w-full px-3 py-2 border border-rose-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-            />
-            <div className="flex gap-2 mt-4">
-              <button
-                type="button"
-                onClick={() => setCaptionTarget(null)}
-                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await captionMutation.mutateAsync({ id: captionTarget.id, input: { caption: captionText.trim() || undefined } })
-                  setCaptionTarget(null)
-                }}
-                disabled={captionMutation.isPending}
-                className="flex-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium cursor-pointer hover:bg-rose-700 transition-colors disabled:opacity-60"
-              >
-                {captionMutation.isPending ? 'Guardando…' : 'Guardar'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
+        />
       )}
     </>
   )

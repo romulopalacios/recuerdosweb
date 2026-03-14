@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { Trash2, Star, Maximize2, Pencil } from 'lucide-react'
 import { Lightbox } from './Lightbox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
+import { CaptionEditorModal } from './CaptionEditorModal'
 import { useDeletePhoto, useSetCoverPhoto, useUpdatePhoto } from '@/hooks/usePhotos'
 import type { Photo } from '@/types'
 
@@ -28,22 +30,24 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
 
-  useEffect(() => {
-    if (captionTarget) captionInputRef.current?.focus()
-  }, [captionTarget])
+  function openCaption(photo: Photo) {
+    flushSync(() => { setCaptionTarget(photo); setCaptionText(photo.caption ?? '') })
+    captionInputRef.current?.focus()
+  }
 
   if (photos.length === 0) return null
 
   return (
     <>
-      <motion.div
-        variants={container} initial="hidden" animate="show"
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
-      >
-        {photos.map((photo, idx) => {
+      <LazyMotion features={domAnimation}>
+        <m.div
+          variants={container} initial="hidden" animate="show"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
+        >
+          {photos.map((photo, idx) => {
           const isCover = photo.public_url === coverUrl
           return (
-            <motion.div
+            <m.div
               key={photo.id}
               variants={item}
               className="group relative aspect-square rounded-xl overflow-hidden bg-rose-50 cursor-pointer"
@@ -89,7 +93,7 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
                     {/* Caption edit */}
                     <button
                       type="button"
-                      onClick={() => { setCaptionTarget(photo); setCaptionText(photo.caption ?? '') }}
+                      onClick={() => openCaption(photo)}
                       title="Editar descripción"
                       className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-white/40 transition-all cursor-pointer backdrop-blur-sm"
                     >
@@ -115,10 +119,11 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
                   <p className="text-white text-xs truncate">{photo.caption}</p>
                 </div>
               )}
-            </motion.div>
+            </m.div>
           )
-        })}
-      </motion.div>
+          })}
+        </m.div>
+      </LazyMotion>
 
       {/* Lightbox */}
       {lightboxIndex !== null && (
@@ -146,65 +151,19 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
         loading={deleteMutation.isPending}
       />
 
-      {/* Caption editor */}
       {captionTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="button"
-          tabIndex={0}
-          aria-label="Cerrar editor de descripción"
-          onClick={() => setCaptionTarget(null)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setCaptionTarget(null)
-            }
+        <CaptionEditorModal
+          ref={captionInputRef}
+          photo={captionTarget}
+          captionText={captionText}
+          isSaving={captionMutation.isPending}
+          onChange={setCaptionText}
+          onClose={() => setCaptionTarget(null)}
+          onSave={async () => {
+            await captionMutation.mutateAsync({ id: captionTarget.id, input: { caption: captionText.trim() || undefined } })
+            setCaptionTarget(null)
           }}
-        >
-          <div
-            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl"
-            role="button"
-            tabIndex={0}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-            }}
-          >
-            <h3 className="font-display font-bold text-gray-900 mb-3">Descripción de la foto</h3>
-            <img src={captionTarget.public_url} alt="" className="w-full h-40 object-cover rounded-xl mb-3" />
-            <input
-              ref={captionInputRef}
-              type="text"
-              value={captionText}
-              onChange={(e) => setCaptionText(e.target.value)}
-              placeholder="Añade una descripción…"
-              maxLength={120}
-              className="w-full px-3 py-2 border border-rose-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-            />
-            <div className="flex gap-2 mt-4">
-              <button
-                type="button"
-                onClick={() => setCaptionTarget(null)}
-                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await captionMutation.mutateAsync({ id: captionTarget.id, input: { caption: captionText.trim() || undefined } })
-                  setCaptionTarget(null)
-                }}
-                className="flex-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium cursor-pointer hover:bg-rose-700 transition-colors"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
     </>
   )

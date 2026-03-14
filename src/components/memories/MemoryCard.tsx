@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, MapPin, MoreHorizontal, Pencil, Trash2, Tag, ArrowRight } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { getIconEmoji } from '@/lib/categoryData'
@@ -31,8 +31,9 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
   if (layout === 'list') {
     return (
       <>
-        <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} layout>
-          <div data-testid="memory-card" className="group flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-card p-4 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5">
+        <LazyMotion features={domAnimation}>
+          <m.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} layout>
+            <div data-testid="memory-card" className="group flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-card p-4 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5">
             {/* cover / placeholder */}
             <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center text-xl">
               {memory.cover_photo_url ? (
@@ -90,8 +91,9 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
                 />
               )}
             </div>
-          </div>
-        </motion.div>
+            </div>
+          </m.div>
+        </LazyMotion>
         <ConfirmDialog
           open={confirmOpen}
           onClose={() => setConfirmOpen(false)}
@@ -108,8 +110,9 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
   /* ── Grid layout ── */
   return (
     <>
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} layout>
-        <div data-testid="memory-card" className="group flex flex-col overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card transition-all duration-250 hover:shadow-card-hover hover:-translate-y-1">
+      <LazyMotion features={domAnimation}>
+        <m.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} layout>
+          <div data-testid="memory-card" className="group flex flex-col overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-card transition-all duration-250 hover:shadow-card-hover hover:-translate-y-1">
           {/* Cover image — auto-rotating carousel */}
           <div className="relative h-44 bg-gray-100 overflow-hidden flex-shrink-0">
             <CardCarousel memoryId={memory.id} coverUrl={memory.cover_photo_url} />
@@ -191,8 +194,9 @@ export function MemoryCard({ memory, onEdit, layout = 'grid' }: MemoryCardProps)
               </Link>
             </div>
           </div>
-        </div>
-      </motion.div>
+          </div>
+        </m.div>
+      </LazyMotion>
 
       <ConfirmDialog
         open={confirmOpen}
@@ -269,10 +273,10 @@ function CardCarousel({ memoryId, coverUrl }: { memoryId: string; coverUrl?: str
       {/* Pill indicators — only when 2+ photos */}
       {urls.length > 1 && (
         <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
-          {urls.map((_, i) => (
+          {urls.map((url, i) => (
             <span
-              key={i}
-              style={{ transition: 'all 400ms ease', width: i === activeIdx ? '20px' : '5px', opacity: i === activeIdx ? 1 : 0.45 }}
+              key={url}
+              style={{ transition: 'width 400ms ease, opacity 400ms ease', width: i === activeIdx ? '20px' : '5px', opacity: i === activeIdx ? 1 : 0.45 }}
               className="h-[3px] rounded-full bg-white/85 inline-block"
             />
           ))}

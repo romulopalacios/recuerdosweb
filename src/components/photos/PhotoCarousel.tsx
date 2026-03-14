@@ -14,9 +14,11 @@
  *  • Click main photo → full-screen Lightbox
  *  • Owner actions: expand, set-as-cover, edit caption, delete
  */
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useReducer, useCallback, useRef, useEffect } from 'react'
+import { flushSync } from 'react-dom'
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Maximize2, Star, Pencil, Trash2 } from 'lucide-react'
+import { CaptionEditorModal } from './CaptionEditorModal'
 import { Lightbox } from './Lightbox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
@@ -38,13 +40,93 @@ const variants = {
   exit:   (dir: number) => ({ x: dir > 0 ? -48 :  48, opacity: 0 }),
 }
 
+// ─── Dialog state reducer ─────────────────────────────────────────────────────
+
+type DialogState = {
+  lightboxOpen: boolean
+  deleteTarget: Photo | null
+  captionTarget: Photo | null
+  captionText: string
+}
+type DialogAction =
+  | { type: 'OPEN_LIGHTBOX' }
+  | { type: 'CLOSE_LIGHTBOX' }
+  | { type: 'OPEN_DELETE'; photo: Photo }
+  | { type: 'CLOSE_DELETE' }
+  | { type: 'OPEN_CAPTION'; photo: Photo; text: string }
+  | { type: 'UPDATE_CAPTION_TEXT'; text: string }
+  | { type: 'CLOSE_CAPTION' }
+
+function dialogReducer(state: DialogState, action: DialogAction): DialogState {
+  switch (action.type) {
+    case 'OPEN_LIGHTBOX':       return { ...state, lightboxOpen: true }
+    case 'CLOSE_LIGHTBOX':      return { ...state, lightboxOpen: false }
+    case 'OPEN_DELETE':         return { ...state, deleteTarget: action.photo }
+    case 'CLOSE_DELETE':        return { ...state, deleteTarget: null }
+    case 'OPEN_CAPTION':        return { ...state, captionTarget: action.photo, captionText: action.text }
+    case 'UPDATE_CAPTION_TEXT': return { ...state, captionText: action.text }
+    case 'CLOSE_CAPTION':       return { ...state, captionTarget: null, captionText: '' }
+    default:                    return state
+  }
+}
+
+const initialDialog: DialogState = { lightboxOpen: false, deleteTarget: null, captionTarget: null, captionText: '' }
+
+// ─── ThumbnailStrip ───────────────────────────────────────────────────────────
+
+interface ThumbnailStripProps {
+  photos: Photo[]
+  activeIndex: number
+  dragOverIdx: number | null
+  dragFromRef: React.RefObject<number | null>
+  readonly?: boolean
+  thumbsRef: React.RefObject<HTMLDivElement>
+  onSelect: (i: number) => void
+  onDragStart: (i: number) => void
+  onDragOver: (e: React.DragEvent, i: number) => void
+  onDrop: (i: number) => void
+  onDragEnd: () => void
+}
+
+function ThumbnailStrip({ photos, activeIndex, dragOverIdx, dragFromRef, readonly, thumbsRef, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: ThumbnailStripProps) {
+  return (
+    <div ref={thumbsRef} className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {photos.map((p, i) => (
+        <button
+          key={p.id}
+          type="button"
+          draggable={!readonly}
+          onDragStart={() => onDragStart(i)}
+          onDragOver={(e) => onDragOver(e, i)}
+          onDrop={() => onDrop(i)}
+          onDragEnd={onDragEnd}
+          onClick={() => onSelect(i)}
+          title={!readonly ? 'Arrastra para reordenar' : undefined}
+          className={cn(
+            'flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-200 cursor-pointer select-none',
+            i === activeIndex
+              ? 'border-rose-500 shadow-md scale-105'
+              : 'border-transparent opacity-55 hover:opacity-85 hover:border-gray-300',
+            dragOverIdx === i && dragFromRef.current !== i
+              ? 'border-blue-400 opacity-100 ring-2 ring-blue-300 ring-offset-1'
+              : '',
+          )}
+        >
+          <img
+            src={p.thumb_url ?? p.public_url}
+            alt={p.caption ?? ''}
+            className="w-full h-full object-cover pointer-events-none"
+          />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCarouselProps) {
   const [index,         setIndex]         = useState(0)
   const [direction,     setDirection]     = useState(0)       // -1 prev / 1 next
-  const [lightboxOpen,  setLightboxOpen]  = useState(false)
-  const [deleteTarget,  setDeleteTarget]  = useState<Photo | null>(null)
-  const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
-  const [captionText,   setCaptionText]   = useState('')
+  const [dialog, dispatch] = useReducer(dialogReducer, initialDialog)
   const captionInputRef = useRef<HTMLInputElement>(null)
   const thumbsRef    = useRef<HTMLDivElement>(null)
   const touchStartX   = useRef<number | null>(null)
@@ -56,9 +138,10 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
   const captionMutation = useUpdatePhoto()
   const reorderMutation = useReorderPhotos(memoryId)
 
-  useEffect(() => {
-    if (captionTarget) captionInputRef.current?.focus()
-  }, [captionTarget])
+  const openCaption = useCallback((photo: Photo) => {
+    flushSync(() => dispatch({ type: 'OPEN_CAPTION', photo, text: photo.caption ?? '' }))
+    captionInputRef.current?.focus()
+  }, [])
 
   // Clamp index after a deletion
   useEffect(() => {
@@ -82,14 +165,14 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
 
   // Keyboard ← → (disabled while lightbox is open)
   useEffect(() => {
-    if (lightboxOpen) return
+    if (dialog.lightboxOpen) return
     function handler(e: KeyboardEvent) {
       if (e.key === 'ArrowLeft')  go(index - 1)
       if (e.key === 'ArrowRight') go(index + 1)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [go, index, lightboxOpen])
+  }, [go, index, dialog.lightboxOpen])
 
   // ── Drag & drop handlers (thumbnail strip reorder) ─────────────────────
   function handleDragStart(i: number) {
@@ -123,23 +206,24 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
 
   return (
     <>
-      <div className="space-y-3">
-        {/* ── Main image ─────────────────────────────────────────────── */}
-        <div
-          className="relative rounded-2xl overflow-hidden bg-gray-100 select-none"
-          style={{ aspectRatio: '16 / 10' }}
-          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
-          onTouchEnd={(e) => {
-            if (touchStartX.current === null) return
-            const dx = e.changedTouches[0].clientX - touchStartX.current
-            if (dx >  40) go(index - 1)
-            else if (dx < -40) go(index + 1)
-            touchStartX.current = null
-          }}
-        >
+      <LazyMotion features={domAnimation}>
+        <div className="space-y-3">
+          {/* ── Main image ─────────────────────────────────────────────── */}
+          <div
+            className="relative rounded-2xl overflow-hidden bg-gray-100 select-none"
+            style={{ aspectRatio: '16 / 10' }}
+            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+            onTouchEnd={(e) => {
+              if (touchStartX.current === null) return
+              const dx = e.changedTouches[0].clientX - touchStartX.current
+              if (dx >  40) go(index - 1)
+              else if (dx < -40) go(index + 1)
+              touchStartX.current = null
+            }}
+          >
           {/* Animated photo */}
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
-            <motion.div
+            <m.div
               key={photo.id}
               custom={direction}
               variants={variants}
@@ -154,9 +238,9 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
                 thumbSrc={photo.thumb_url}
                 alt={photo.caption ?? ''}
                 className="w-full h-full object-cover cursor-pointer"
-                onClick={() => setLightboxOpen(true)}
+                onClick={() => dispatch({ type: 'OPEN_LIGHTBOX' })}
               />
-            </motion.div>
+            </m.div>
           </AnimatePresence>
 
           {/* Counter pill */}
@@ -206,7 +290,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setLightboxOpen(true)}
+              onClick={() => dispatch({ type: 'OPEN_LIGHTBOX' })}
               title="Ver en pantalla completa"
               className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/55 transition-colors cursor-pointer"
             >
@@ -227,7 +311,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
                 <button
                   type="button"
                   title="Editar descripción"
-                  onClick={() => { setCaptionTarget(photo); setCaptionText(photo.caption ?? '') }}
+                  onClick={() => openCaption(photo)}
                   className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer"
                 >
                   <Pencil size={13} />
@@ -235,7 +319,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
                 <button
                   type="button"
                   title="Eliminar foto"
-                  onClick={() => setDeleteTarget(photo)}
+                  onClick={() => dispatch({ type: 'OPEN_DELETE', photo })}
                   className="w-8 h-8 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center text-white hover:bg-red-500 transition-colors cursor-pointer"
                 >
                   <Trash2 size={13} />
@@ -247,11 +331,11 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
           {/* Dot indicators (when ≤8 photos and no thumbnail strip shown) */}
           {photos.length > 1 && photos.length <= 8 && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 pointer-events-none">
-              {photos.map((_, i) => (
+              {photos.map((p, i) => (
                 <span
-                  key={i}
+                  key={`dot-${p.id}`}
                   style={{
-                    transition: 'all 300ms ease',
+                    transition: 'width 300ms ease, opacity 300ms ease',
                     width: i === index ? '18px' : '5px',
                     opacity: i === index ? 1 : 0.45,
                   }}
@@ -260,68 +344,48 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
               ))}
             </div>
           )}
-        </div>
+          </div>
 
         {/* ── Thumbnail strip (shown when 2+ photos) ──────────────────── */}
         {photos.length > 1 && (
-          <div
-            ref={thumbsRef}
-            className="flex gap-2 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: 'none' }}
-          >
-            {photos.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                draggable={!readonly}
-                onDragStart={() => handleDragStart(i)}
-                onDragOver={(e) => handleDragOver(e, i)}
-                onDrop={() => handleDrop(i)}
-                onDragEnd={handleDragEnd}
-                onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i) }}
-                title={!readonly ? 'Arrastra para reordenar' : undefined}
-                className={cn(
-                  'flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all duration-200 cursor-pointer select-none',
-                  i === index
-                    ? 'border-rose-500 shadow-md scale-105'
-                    : 'border-transparent opacity-55 hover:opacity-85 hover:border-gray-300',
-                  dragOverIdx === i && dragFromRef.current !== i
-                    ? 'border-blue-400 opacity-100 ring-2 ring-blue-300 ring-offset-1'
-                    : '',
-                )}
-              >
-                <img
-                  src={p.thumb_url ?? p.public_url}
-                  alt={p.caption ?? ''}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-              </button>
-            ))}
-          </div>
+          <ThumbnailStrip
+            photos={photos}
+            activeIndex={index}
+            dragOverIdx={dragOverIdx}
+            dragFromRef={dragFromRef}
+            readonly={readonly}
+            thumbsRef={thumbsRef}
+            onSelect={(i) => { setDirection(i > index ? 1 : -1); setIndex(i) }}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
+          />
         )}
-      </div>
+        </div>
+      </LazyMotion>
 
       {/* ── Lightbox ──────────────────────────────────────────────────── */}
-      {lightboxOpen && (
+      {dialog.lightboxOpen && (
         <Lightbox
           photos={photos}
           index={index}
-          onClose={() => setLightboxOpen(false)}
+          onClose={() => dispatch({ type: 'CLOSE_LIGHTBOX' })}
           onNavigate={(i) => { setDirection(i > index ? 1 : -1); setIndex(i) }}
         />
       )}
 
       {/* ── Delete confirm ─────────────────────────────────────────────── */}
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
+        open={Boolean(dialog.deleteTarget)}
+        onClose={() => dispatch({ type: 'CLOSE_DELETE' })}
         onConfirm={async () => {
-          if (!deleteTarget) return
+          if (!dialog.deleteTarget) return
           await deleteMutation.mutateAsync({
-            id: deleteTarget.id,
-            storagePath: deleteTarget.storage_path,
+            id: dialog.deleteTarget.id,
+            storagePath: dialog.deleteTarget.storage_path,
           })
-          setDeleteTarget(null)
+          dispatch({ type: 'CLOSE_DELETE' })
         }}
         title="Eliminar foto"
         description="¿Seguro que quieres eliminar esta foto? No se puede recuperar."
@@ -331,72 +395,23 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
       />
 
       {/* ── Caption editor ─────────────────────────────────────────────── */}
-      {captionTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
-          role="button"
-          tabIndex={0}
-          aria-label="Cerrar editor de descripción"
-          onClick={() => setCaptionTarget(null)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setCaptionTarget(null)
-            }
+      {dialog.captionTarget && (
+        <CaptionEditorModal
+          ref={captionInputRef}
+          photo={dialog.captionTarget}
+          captionText={dialog.captionText}
+          isSaving={captionMutation.isPending}
+          onChange={(text) => dispatch({ type: 'UPDATE_CAPTION_TEXT', text })}
+          onClose={() => dispatch({ type: 'CLOSE_CAPTION' })}
+          onSave={async () => {
+            if (!dialog.captionTarget) return
+            await captionMutation.mutateAsync({
+              id: dialog.captionTarget.id,
+              input: { caption: dialog.captionText.trim() || undefined },
+            })
+            dispatch({ type: 'CLOSE_CAPTION' })
           }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-display font-bold text-gray-900 mb-3">Descripción de la foto</h3>
-            <img
-              src={captionTarget.public_url}
-              alt=""
-              className="w-full h-40 object-cover rounded-xl mb-3"
-            />
-            <input
-              ref={captionInputRef}
-              type="text"
-              value={captionText}
-              onChange={(e) => setCaptionText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !captionMutation.isPending && (
-                captionMutation.mutateAsync({
-                  id: captionTarget.id,
-                  input: { caption: captionText.trim() || undefined },
-                }).then(() => setCaptionTarget(null))
-              )}
-              placeholder="Añade una descripción…"
-              maxLength={120}
-              className="w-full px-3 py-2 border border-rose-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-            />
-            <div className="flex gap-2 mt-4">
-              <button
-                type="button"
-                onClick={() => setCaptionTarget(null)}
-                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={captionMutation.isPending}
-                onClick={async () => {
-                  await captionMutation.mutateAsync({
-                    id: captionTarget.id,
-                    input: { caption: captionText.trim() || undefined },
-                  })
-                  setCaptionTarget(null)
-                }}
-                className="flex-1 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-medium cursor-pointer hover:bg-rose-700 transition-colors disabled:opacity-60"
-              >
-                {captionMutation.isPending ? 'Guardando…' : 'Guardar'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
+        />
       )}
     </>
   )

@@ -9,7 +9,7 @@
  *  <NotificationsPanel />   — enable/disable push notifications + anniversary check
  */
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import {
   Link2, Copy, Trash2, Bell, BellOff, BellRing, RefreshCw,
   Users, Calendar, Eye, Pencil, UserRound, Mail,
@@ -163,7 +163,7 @@ export function SharingPanel() {
 
       {isLoading && (
         <div className="space-y-2">
-          {[0, 1].map((i) => <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />)}
+          {['skeleton-a', 'skeleton-b'].map((skeletonId) => <div key={skeletonId} className="h-14 rounded-xl bg-gray-100 animate-pulse" />)}
         </div>
       )}
 
@@ -174,13 +174,14 @@ export function SharingPanel() {
         </div>
       )}
 
-      {shares.map((share) => (
-        <motion.div
-          key={share.id}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50"
-        >
+      <LazyMotion features={domAnimation}>
+        {shares.map((share) => (
+          <m.div
+            key={share.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50"
+          >
           <div className="flex-1 min-w-0">
             {/* Name / email label */}
             {(share.guest_name || share.guest_email) && (
@@ -222,8 +223,9 @@ export function SharingPanel() {
               <Trash2 size={14} />
             </button>
           </div>
-        </motion.div>
-      ))}
+          </m.div>
+        ))}
+      </LazyMotion>
     </div>
   )
 }
