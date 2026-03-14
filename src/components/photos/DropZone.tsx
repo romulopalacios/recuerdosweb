@@ -36,7 +36,7 @@ export function DropZone({ onFiles, disabled, className }: DropZoneProps) {
       if (!mimeOk || !extOk) {
         rejected.push(`«${f.name}»: tipo no soportado`)
       } else if (f.size > MAX_SIZE_MB * 1024 * 1024) {
-        rejected.push(`«${f.name}»: supera ${MAX_SIZE_MB} MB`)
+        rejected.push(`«${f.name}»: supera ${MAX_SIZE_MB} MB`)
       } else {
         valid.push(f)
       }
@@ -63,7 +63,16 @@ export function DropZone({ onFiles, disabled, className }: DropZoneProps) {
 
   return (
     <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       onClick={() => !disabled && inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (disabled) return
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          inputRef.current?.click()
+        }
+      }}
       onDragOver={(e) => { e.preventDefault(); if (!disabled) setDragging(true) }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}

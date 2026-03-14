@@ -98,8 +98,9 @@ function ProfileSection() {
 
       {/* Full name */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Nombre completo</label>
         <Input
+          label="Nombre completo"
+          id="profile-full-name"
           {...register('full_name')}
           placeholder="Escribe tu nombre"
           error={errors.full_name?.message}
@@ -109,8 +110,9 @@ function ProfileSection() {
 
       {/* Email (read-only) */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Correo electrónico</label>
         <Input
+          label="Correo electrónico"
+          id="profile-email"
           value={email}
           readOnly
           disabled
@@ -172,8 +174,9 @@ function SecuritySection() {
 
       {/* New password */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Nueva contraseña</label>
         <Input
+          label="Nueva contraseña"
+          id="security-new-password"
           {...register('new_password')}
           type={showNew ? 'text' : 'password'}
           placeholder="Mínimo 6 caracteres"
@@ -188,8 +191,9 @@ function SecuritySection() {
 
       {/* Confirm */}
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Confirmar contraseña</label>
         <Input
+          label="Confirmar contraseña"
+          id="security-confirm-password"
           {...register('confirm')}
           type={showConf ? 'text' : 'password'}
           placeholder="Repite la contraseña"

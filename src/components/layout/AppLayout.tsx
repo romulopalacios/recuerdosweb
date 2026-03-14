@@ -47,7 +47,7 @@ export function AppLayout() {
           </div>
         </main>
       </div>
-      <CommandPalette open={open} onClose={() => setOpen(false)} />
+      <CommandPalette key={open ? 'open' : 'closed'} open={open} onClose={() => setOpen(false)} />
     </div>
   )
 }

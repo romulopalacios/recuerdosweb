@@ -45,6 +45,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
   const [deleteTarget,  setDeleteTarget]  = useState<Photo | null>(null)
   const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
   const [captionText,   setCaptionText]   = useState('')
+  const captionInputRef = useRef<HTMLInputElement>(null)
   const thumbsRef    = useRef<HTMLDivElement>(null)
   const touchStartX   = useRef<number | null>(null)
   const dragFromRef   = useRef<number | null>(null)
@@ -54,6 +55,10 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
   const reorderMutation = useReorderPhotos(memoryId)
+
+  useEffect(() => {
+    if (captionTarget) captionInputRef.current?.focus()
+  }, [captionTarget])
 
   // Clamp index after a deletion
   useEffect(() => {
@@ -265,8 +270,9 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
             style={{ scrollbarWidth: 'none' }}
           >
             {photos.map((p, i) => (
-              <div
+              <button
                 key={p.id}
+                type="button"
                 draggable={!readonly}
                 onDragStart={() => handleDragStart(i)}
                 onDragOver={(e) => handleDragOver(e, i)}
@@ -289,7 +295,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
                   alt={p.caption ?? ''}
                   className="w-full h-full object-cover pointer-events-none"
                 />
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -328,7 +334,16 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
       {captionTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar editor de descripción"
           onClick={() => setCaptionTarget(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setCaptionTarget(null)
+            }
+          }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -343,7 +358,7 @@ export function PhotoCarousel({ photos, memoryId, coverUrl, readonly }: PhotoCar
               className="w-full h-40 object-cover rounded-xl mb-3"
             />
             <input
-              autoFocus
+              ref={captionInputRef}
               type="text"
               value={captionText}
               onChange={(e) => setCaptionText(e.target.value)}

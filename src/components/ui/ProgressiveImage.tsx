@@ -77,6 +77,14 @@ export function ProgressiveImage({
           onLoad={() => setLoaded(true)}
           onError={() => setErrored(true)}
           onClick={onClick}
+          role={onClick ? 'button' : undefined}
+          tabIndex={onClick ? 0 : undefined}
+          onKeyDown={onClick ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onClick()
+            }
+          } : undefined}
           className={cn(
             'transition-opacity duration-500',
             loaded ? 'opacity-100' : 'opacity-0',

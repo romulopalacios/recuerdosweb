@@ -73,7 +73,12 @@ export function CategoryCard({ category, onEdit }: CategoryCardProps) {
 
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <button
+                    type="button"
+                    aria-label="Cerrar menú de categoría"
+                    className="fixed inset-0 z-10"
+                    onClick={() => setMenuOpen(false)}
+                  />
                   <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[140px]">
                     <button
                       type="button"

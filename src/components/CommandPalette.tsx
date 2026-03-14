@@ -71,13 +71,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return searchMemories.map((m) => ({ kind: 'memory' as const, memory: m }))
   }, [debouncedQuery, searchMemories])
 
-  // Reset state on open/close
+  // Focus search input when palette opens
   useEffect(() => {
-    if (open) {
-      setQuery('')
-      setCursor(0)
-      setTimeout(() => inputRef.current?.focus(), 60)
-    }
+    if (!open) return
+    const t = setTimeout(() => inputRef.current?.focus(), 60)
+    return () => clearTimeout(t)
   }, [open])
 
   // Scroll cursor item into view
@@ -109,9 +107,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       onClose()
     }
   }
-
-  // Reset cursor when results change
-  useEffect(() => { setCursor(0) }, [results])
 
   return (
     <AnimatePresence>
@@ -182,7 +177,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   </li>
                 ) : (
                   results.map((item, idx) => (
-                    <li key={idx}>
+                    <li key={item.kind === 'link' ? `link:${item.to}` : `memory:${item.memory.id}`}>
                       <button
                         type="button"
                         onClick={() => execute(item)}

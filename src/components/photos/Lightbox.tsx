@@ -42,11 +42,31 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         data-testid="lightbox"
+        role="button"
+        tabIndex={0}
+        aria-label="Cerrar visor de fotos"
         className="fixed inset-0 z-[200] flex flex-col bg-black/95"
         onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClose()
+          }
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex items-center justify-between p-4 flex-shrink-0"
+          role="button"
+          tabIndex={0}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+        >
           <div className="text-white/60 text-sm">
             {index + 1} / {photos.length}
             {current.caption && <span className="ml-3 text-white/80">{current.caption}</span>}
@@ -82,7 +102,18 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
         </div>
 
         {/* Main image */}
-        <div className="flex-1 flex items-center justify-center px-16 min-h-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex-1 flex items-center justify-center px-16 min-h-0"
+          role="button"
+          tabIndex={0}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+        >
           <motion.img
             key={current.id}
             initial={{ opacity: 0, scale: 0.96 }}
@@ -117,7 +148,18 @@ export function Lightbox({ photos, index, onClose, onNavigate }: LightboxProps) 
 
         {/* Thumbnail strip */}
         {photos.length > 1 && (
-          <div className="flex-shrink-0 flex items-center justify-center gap-2 p-4 overflow-x-auto" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex-shrink-0 flex items-center justify-center gap-2 p-4 overflow-x-auto"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          >
             {photos.map((p, i) => (
               <button
                 key={p.id}

@@ -79,10 +79,11 @@ export function SharingPanel() {
         {/* Name + Email inputs */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+            <label htmlFor="invite-guest-name" className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
               <UserRound size={10} /> Nombre (opcional)
             </label>
             <input
+              id="invite-guest-name"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -91,10 +92,11 @@ export function SharingPanel() {
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+            <label htmlFor="invite-guest-email" className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
               <Mail size={10} /> Correo (opcional)
             </label>
             <input
+              id="invite-guest-email"
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}

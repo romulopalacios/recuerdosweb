@@ -308,7 +308,12 @@ function MemoryMenu({
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <button
+            type="button"
+            aria-label="Cerrar menú del recuerdo"
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
           <div className="absolute right-0 top-8 z-20 bg-white rounded-2xl shadow-card-hover border border-gray-100 py-1.5 min-w-[140px] overflow-hidden">
             <button
               type="button"

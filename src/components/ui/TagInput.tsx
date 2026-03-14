@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from 'react'
+import { useState, useRef, useId, KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,7 @@ interface TagInputProps {
 export function TagInput({ label, tags, onChange, placeholder = 'Escribe y presiona Enter…', maxTags = 10, hint }: TagInputProps) {
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const inputId = useId()
 
   function addTag(value: string) {
     const trimmed = value.trim().toLowerCase()
@@ -37,13 +38,21 @@ export function TagInput({ label, tags, onChange, placeholder = 'Escribe y presi
 
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label htmlFor={inputId} className="text-sm font-medium text-gray-700">{label}</label>}
       <div
+        role="button"
+        tabIndex={0}
         className={cn(
           'flex flex-wrap gap-2 min-h-[42px] w-full rounded-xl border border-rose-200 bg-white/80 px-3 py-2',
           'focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-200 transition-all duration-200 cursor-text',
         )}
         onClick={() => inputRef.current?.focus()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            inputRef.current?.focus()
+          }
+        }}
       >
         {tags.map((tag) => (
           <span
@@ -62,6 +71,7 @@ export function TagInput({ label, tags, onChange, placeholder = 'Escribe y presi
         ))}
         {tags.length < maxTags && (
           <input
+            id={inputId}
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}

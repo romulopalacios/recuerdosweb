@@ -85,10 +85,15 @@ export function VirtualPhotoGrid({
   const [deleteTarget,  setDeleteTarget]  = useState<Photo | null>(null)
   const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
   const [captionText,   setCaptionText]   = useState('')
+  const captionInputRef = useRef<HTMLInputElement>(null)
 
   const deleteMutation  = useDeletePhoto(memoryId)
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
+
+  useEffect(() => {
+    if (captionTarget) captionInputRef.current?.focus()
+  }, [captionTarget])
 
   // ── Stable open-lightbox callback so cell renders don't thrash ───────────
   const openLightbox = useCallback((idx: number) => setLightboxIndex(idx), [])
@@ -251,7 +256,16 @@ export function VirtualPhotoGrid({
       {captionTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar editor de descripción"
           onClick={() => setCaptionTarget(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setCaptionTarget(null)
+            }
+          }}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
@@ -262,7 +276,7 @@ export function VirtualPhotoGrid({
             <h3 className="font-display font-bold text-gray-900 mb-3">Descripción de la foto</h3>
             <img src={captionTarget.public_url} alt="" className="w-full h-40 object-cover rounded-xl mb-3" />
             <input
-              autoFocus
+              ref={captionInputRef}
               type="text"
               value={captionText}
               onChange={(e) => setCaptionText(e.target.value)}

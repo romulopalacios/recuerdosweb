@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2, Star, Maximize2, Pencil } from 'lucide-react'
 import { Lightbox } from './Lightbox'
@@ -23,9 +23,14 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
   const [deleteTarget, setDeleteTarget] = useState<Photo | null>(null)
   const [captionTarget, setCaptionTarget] = useState<Photo | null>(null)
   const [captionText, setCaptionText] = useState('')
+  const captionInputRef = useRef<HTMLInputElement>(null)
   const deleteMutation  = useDeletePhoto(memoryId)
   const coverMutation   = useSetCoverPhoto(memoryId)
   const captionMutation = useUpdatePhoto()
+
+  useEffect(() => {
+    if (captionTarget) captionInputRef.current?.focus()
+  }, [captionTarget])
 
   if (photos.length === 0) return null
 
@@ -143,12 +148,35 @@ export function PhotoGrid({ photos, memoryId, coverUrl, readonly }: PhotoGridPro
 
       {/* Caption editor */}
       {captionTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCaptionTarget(null)}>
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar editor de descripción"
+          onClick={() => setCaptionTarget(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setCaptionTarget(null)
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          >
             <h3 className="font-display font-bold text-gray-900 mb-3">Descripción de la foto</h3>
             <img src={captionTarget.public_url} alt="" className="w-full h-40 object-cover rounded-xl mb-3" />
             <input
-              autoFocus
+              ref={captionInputRef}
               type="text"
               value={captionText}
               onChange={(e) => setCaptionText(e.target.value)}
